@@ -11,14 +11,14 @@ from progressbar import ProgressBar
 currencies = [
     'AUDUSD',
     'EURGBP',
-    # 'EURJPY',
+    'EURJPY',
     'EURUSD',
-    # 'GBPJPY',
-    # 'GBPUSD',
+    'GBPJPY',
+    'GBPUSD',
     'NZDUSD',
     'USDCAD',
     'USDCHF',
-    # 'USDJPY',
+    'USDJPY',
 ]
 
 
