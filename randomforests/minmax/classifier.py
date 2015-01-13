@@ -58,6 +58,8 @@ def main():
         # create classifier
         # rfc = RandomForestClassifier(n_estimators=30)
         rfc = ExtraTreesClassifier(n_estimators=100)
+        pprint(X_train[:10])
+        pprint(y_train[:10])
         rfc.fit(X_train, y_train)
         logging.info('Classifier trained')
 
