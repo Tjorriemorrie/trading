@@ -11,16 +11,16 @@ from progressbar import ProgressBar
 
 
 currencies = [
-    # 'AUDUSD',
-    # 'EURGBP',
-    # 'EURJPY',
-    # 'EURUSD',
+    'AUDUSD',
+    'EURGBP',
+    'EURJPY',
+    'EURUSD',
     'GBPJPY',
-    # 'GBPUSD',
-    # 'NZDUSD',
-    # 'USDCAD',
-    # 'USDCHF',
-    # 'USDJPY',
+    'GBPUSD',
+    'NZDUSD',
+    'USDCAD',
+    'USDCHF',
+    'USDJPY',
 ]
 
 
@@ -38,8 +38,11 @@ def main(features_num, rewards_num):
             parse_dates=[[0, 1]],
             index_col=0,
         ).astype(float)
+
+        # max_cutoff = max(features_num, rewards_num)
+        # data = data[-max_cutoff:]
         logging.info('Loaded {0} rows'.format(len(data)))
-        print data
+        # print data
 
         # set rewards
         rewards = calculateRewards(data, rewards_num)
@@ -53,8 +56,15 @@ def main(features_num, rewards_num):
         features.dropna(inplace=True)
         # print features
 
+        # split data
+        train = features[:-1]
+        test = features[-1:]
+
         # saving
-        features.to_csv('{0}/data/{1}_{2}_{3}.csv'.format(realpath(dirname(__file__)), currency, features_num, rewards_num))
+        train.to_csv('{0}/data/{1}_{2}_{3}_train.csv'.format(realpath(dirname(__file__)), currency, features_num, rewards_num))
+        test.to_csv('{0}/data/{1}_{2}_{3}_test.csv'.format(realpath(dirname(__file__)), currency, features_num, rewards_num))
+
+        # break
 
 
 def extractFeatures(data, n):
