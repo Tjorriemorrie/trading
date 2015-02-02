@@ -8,6 +8,20 @@ from sklearn.preprocessing import scale, MinMaxScaler
 from progressbar import ProgressBar
 
 
+'''
+2015-01-29 07:23:01,839 root     INFO     USDCAD score:0.95 oob:0.96
+2015-01-29 07:23:01,838 root     INFO     USDCHF score:0.94 oob:0.93
+2015-01-29 07:23:01,839 root     INFO     AUDUSD score:0.87 oob:0.87
+2015-01-29 07:23:01,839 root     INFO     EURGBP score:0.87 oob:0.81
+2015-01-29 07:23:01,839 root     INFO     NZDUSD score:0.85 oob:0.81
+2015-01-29 07:23:01,839 root     INFO     EURUSD score:0.66 oob:0.65
+2015-01-29 07:23:01,839 root     INFO     USDJPY score:0.54 oob:0.53
+2015-01-29 07:23:01,838 root     INFO     GBPUSD score:0.51 oob:0.51
+2015-01-29 07:23:01,839 root     INFO     GBPJPY score:0.51 oob:0.50
+2015-01-29 07:23:01,838 root     INFO     EURJPY score:0.50 oob:0.50
+'''
+
+
 currencies = [
     'AUDUSD',
     'EURGBP',
@@ -50,25 +64,31 @@ def main():
         X_train, X_test, y_train, y_test = cross_validation.train_test_split(
             features,
             rewards,
-            test_size=0.30,
+            test_size=0.40,
             # random_state=shuffle,
         )
         logging.info('Data splitted')
 
         # create classifier
+        logging.info('Classifier: training...')
         # rfc = RandomForestClassifier(n_estimators=30)
-        rfc = ExtraTreesClassifier(n_estimators=100)
+        rfc = ExtraTreesClassifier(n_estimators=20, oob_score=True, bootstrap=True)
         rfc.fit(X_train, y_train)
-        logging.info('Classifier trained')
 
         # saving
+        logging.info('Classifier: saving...')
         externals.joblib.dump(rfc, 'models/' + currency + '.pkl', compress=9)
 
         # score
-        results[currency] = rfc.score(X=X_test, y=y_test)
+        logging.info('Classifier: scoring...')
+        results[currency] = {
+            'score': rfc.score(X=X_test, y=y_test),
+            'oob': rfc.oob_score_,
+        }
+        # break
 
-    for currency, score in results.iteritems():
-        logging.info('{0} {1}'.format(currency, score))
+    for currency, scores in results.iteritems():
+        logging.info('{0} score:{1:.2f} oob:{2:.2f}'.format(currency, scores['score'], scores['oob']))
 
 
 def extractFeatures(data):
