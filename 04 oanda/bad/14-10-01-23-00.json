@@ -1,0 +1,5 @@
+{
+    "code" : 400,
+    "message" : "Bad Request",
+    "moreInfo" : "http:\/\/developer.oanda.com\/docs\/v1\/troubleshooting\/#errors"
+}
