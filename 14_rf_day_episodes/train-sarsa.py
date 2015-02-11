@@ -52,10 +52,10 @@ def main(debug):
 
         # df = setGlobalStats(df)
 
-        alpha = 0.50
-        epsilon = 0.10
-        gamma = 0.99
-        lamda = 0.99
+        alpha = 0.10
+        epsilon = 0.01
+        gamma = 0.90
+        lamda = 0.01
         q = loadQ(currency, interval)
 
         time_start = time()
@@ -87,23 +87,24 @@ def main(debug):
                 q, r, trail, etraces = train(group_df, q, alpha, epsilon, gamma, optimus, lamda, etraces)
 
                 results.append(r)
-                while len(results) > 10000:
+                while len(results) > 100000:
                     # results.pop(0)
                     results.remove(min(results[:int(len(results)*.5)]))
                 results_avg = np.mean(results)
                 results_std = np.std(results)
-                if len(results) > 1000 and results_avg >= 0.9:
+                if len(results) > 10000 and results_avg >= 0.95:
                     logging.error('Training finished!!!!')
                     break
 
                 # adjust values
                 inverse_val = 1. - max(results_avg, 0.001)
-                alpha = inverse_val / 2.
-                epsilon = np.sqrt(inverse_val * 100) / 100
+                lamda = inverse_val
+                alpha = inverse_val / 3.
+                epsilon = alpha / 3.
 
-                if time() - time_start > 120:
+                if time() - time_start > 10 or debug:
                     logging.warn('[{2}] {0} => {1:.0f}%'.format(''.join(trail), r * 100, len(trail)))
-                    logging.warn('{0} terminated: progress {1:.0f}-{5:.0f} % [e:{2:.2f}% a:{3:.1f}% l:{4:.0f}%]'.format(
+                    logging.warn('[{0}] {1:.0f}-{5:.0f} % [e:{2:.2f}% a:{3:.1f}% l:{4:.0f}%]'.format(
                         epoch,
                         (results_avg - results_std) * 100,
                         epsilon * 100,
@@ -201,7 +202,7 @@ def train(df, q, alpha, epsilon, gamma, optimus, lamda, etraces):
         s_ts, trail = takeAction(s, a, trail)
 
         # get reward
-        r = getReward(trail, optimus, i/(len(df)-1))
+        r = getReward(trail, optimus)
 
         # next environment
         i_next = i + 1
@@ -304,32 +305,22 @@ def takeAction(s, a, trail):
     return s_trade_status, trail
 
 
-def getReward(trail, optimus, is_last):
+def getReward(trail, optimus):
     logging.info('Reward: trail vs optimus')
     optimus_len = len(optimus) + 0.
 
     # precision
     r_correct = sum(map(operator.eq, trail, optimus))
-    # r_fail = len(trail) - r_correct
-    r_precision = r_correct  # - r_fail
-    # r_precision += optimus_len
-    r_precision /= optimus_len  #* 2
-    # logging.debug('Reward: correct {0:.0f} and bad {1:.0f} => {2:.2f}'.format(r_correct, r_fail, r_precision))
+    r_precision = r_correct / optimus_len
     logging.debug('Reward: correct {0:.0f} => {1:.2f}'.format(r_correct, r_precision))
 
     # length
-    r_length = abs(len(trail) - optimus_len)
-    r_length_scaled = 1 - (r_length / optimus_len)
-    logging.debug('Reward: missing {0:.0f} => {1:.2f}'.format(r_length, r_length_scaled))
+    r_length_optimus = optimus.count('B' if 'B' in optimus else 'S')
+    r_length_trail = trail.count('B' if 'B' in optimus else 'S')
+    r_length = 1 - (abs(r_length_trail - r_length_optimus) / max(optimus_len - r_length_optimus, r_length_optimus))
+    logging.debug('Reward: trade length {0:.0f} vs {1:.0f} => {2:.2f}'.format(r_length_trail, r_length_optimus, r_length))
 
-    # congruence
-    r_congruence_diff = 0
-    for c in ['_', 'S', 'B']:
-        r_congruence_diff += abs(trail.count(c) - optimus.count(c))
-    r_congruence = 1 - (r_congruence_diff / optimus_len)
-    logging.debug('Reward: congruence diff {0:.0f} => {1:.2f}'.format(r_congruence_diff, r_congruence))
-
-    r = np.mean([r_precision, r_length_scaled, r_congruence])
+    r = np.mean([r_precision, r_length])
 
     logging.info('Reward: {0:.2f}'.format(r))
     return r
@@ -369,7 +360,7 @@ def getDelta(q, s, a, r, s_next, a_next, gamma):
     logging.info('Delta: calculating...')
     q_sa = q.get((tuple(s), a), 0)
     if not s_next or not a_next:
-        q_sa_next = 0
+        q_sa_next = r
     else:
         q_sa_next = q.get((tuple(s_next), a_next), r)
     d = r + (gamma * q_sa_next) - q_sa
