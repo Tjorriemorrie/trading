@@ -6,7 +6,8 @@ import pickle
 from random import random, choice
 from pprint import pprint
 from sklearn.preprocessing import scale
-from time import sleep
+from time import time, sleep
+import operator
 
 
 CURRENCIES = [
@@ -40,7 +41,7 @@ ACTIONS = [
 
 
 
-def main():
+def main(debug):
     interval = choice(INTERVALS)
     for currency in CURRENCIES:
         logging.info('Training {0} on {1}...'.format(currency, interval))
@@ -51,19 +52,21 @@ def main():
 
         # df = setGlobalStats(df)
 
-        alpha = 0.10
+        alpha = 0.50
         epsilon = 0.10
-        gamma = 0.90
+        gamma = 0.99
+        lamda = 0.99
         q = loadQ(currency, interval)
 
+        time_start = time()
         for group_name, group_df in df.groupby(pd.TimeGrouper(freq='M')):
-            group_max = group_df.close.max()
-            group_min = group_df.close.min()
+            group_max = group_df[:-1].close.max()
+            group_min = group_df[:-1].close.min()
             reward_max = group_max - group_min
             logging.info('Max reward for set {0:.4f} (max {1:.4f} min {2:.4f})'.format(reward_max, group_max, group_min))
             optimus = ''
             state = '_'
-            for i, row in group_df[:-1].iterrows():
+            for i, row in group_df.iterrows():
                 # enter buy?
                 if row['close'] == group_min:
                     state = 'B' if state == '_' else '!'
@@ -71,31 +74,48 @@ def main():
                 if row['close'] == group_max:
                     state = 'S' if state == '_' else '!'
                 optimus += state
-                if state == '!':
-                    break
-            logging.error('{0} {1}'.format(len(optimus), ''.join(optimus)))
-            sleep(5)
+            logging.error('[{0}] {1}'.format(len(optimus), ''.join(optimus)))
 
             epoch = 0
             results = []
+            etraces = {}
             while True:
                 epoch += 1
                 logging.info(' ')
                 logging.info('{0}'.format('=' * 20))
                 logging.info('EPOCH {0}'.format(epoch))
-                q, r = train(group_df, q, alpha, epsilon, gamma, optimus)
+                q, r, trail, etraces = train(group_df, q, alpha, epsilon, gamma, optimus, lamda, etraces)
 
                 results.append(r)
-                while len(results) > 1000:
-                    results.pop(0)
-                logging.warn('{0} terminated: progress {1:.0f}%'.format(epoch, sum(results) / len(results) * 100))
+                while len(results) > 10000:
+                    # results.pop(0)
+                    results.remove(min(results[:int(len(results)*.5)]))
+                results_avg = np.mean(results)
+                results_std = np.std(results)
+                if len(results) > 1000 and results_avg >= 0.9:
+                    logging.error('Training finished!!!!')
+                    break
 
-                # sleep(0.1)
-                break  # epochs
+                # adjust values
+                inverse_val = 1. - max(results_avg, 0.001)
+                alpha = inverse_val / 2.
+                epsilon = np.sqrt(inverse_val * 100) / 100
 
-                # save periodically
-                if epoch % 500 == 0:
+                if time() - time_start > 120:
+                    logging.warn('[{2}] {0} => {1:.0f}%'.format(''.join(trail), r * 100, len(trail)))
+                    logging.warn('{0} terminated: progress {1:.0f}-{5:.0f} % [e:{2:.2f}% a:{3:.1f}% l:{4:.0f}%]'.format(
+                        epoch,
+                        (results_avg - results_std) * 100,
+                        epsilon * 100,
+                        alpha * 100,
+                        lamda * 100,
+                        (results_avg + results_std) * 100
+                    ))
                     saveQ(currency, interval, q)
+                    time_start = time()
+
+                if debug:
+                    break  # epochs
 
             break  # groups
 
@@ -143,7 +163,7 @@ def dropOutliers(df):
 def loadQ(currency, interval):
     logging.info('Q: loading...')
     try:
-        with open('{0}/models/{1}_{2}.q'.format(realpath(dirname(__file__)), currency, interval), 'r') as f:
+        with open('{0}/models/{1}_{2}.q'.format(realpath(dirname(__file__)), currency, interval), 'rb') as f:
             q = pickle.load(f)
     except IOError:
         q = {}
@@ -153,12 +173,12 @@ def loadQ(currency, interval):
 
 def saveQ(currency, interval, q):
     logging.info('Q: saving...')
-    with open('{0}/models/{1}_{2}.q'.format(realpath(dirname(__file__)), currency, interval), 'w') as f:
+    with open('{0}/models/{1}_{2}.q'.format(realpath(dirname(__file__)), currency, interval), 'wb') as f:
         pickle.dump(q, f)
-    logging.error('Q: saved {0}'.format(len(q)))
+    logging.info('Q: saved {0}'.format(len(q)))
 
 
-def train(df, q, alpha, epsilon, gamma, optimus):
+def train(df, q, alpha, epsilon, gamma, optimus, lamda, etraces):
     logging.info('Training: started...')
     r = 0.
     trail = ''
@@ -166,12 +186,11 @@ def train(df, q, alpha, epsilon, gamma, optimus):
     # initial state
     i = 0.
     s = getState(df, i)
-    close_entry = None
 
     # initial action
     a = getAction(q, s, epsilon)
 
-    for date_time, row in df[:-1].iterrows():
+    for date_time, row in df.iterrows():
         logging.info(' ')
         logging.info('Environment: {0}/{1} {2}'.format(i, len(df)-1, date_time))
 
@@ -181,30 +200,32 @@ def train(df, q, alpha, epsilon, gamma, optimus):
         # take action (get trade status for s_next)
         s_ts, trail = takeAction(s, a, trail)
 
-        # save entry
-        r = getReward(trail, optimus)
+        # get reward
+        r = getReward(trail, optimus, i/(len(df)-1))
 
         # next environment
         i_next = i + 1
-        s_next = getState(df, i_next, s_ts)
-        a_next = getAction(q, s_next, epsilon)
+        if i_next >= len(df):
+            s_next = None
+            a_next = None
+        else:
+            s_next = getState(df, i_next, s_ts)
+            a_next = getAction(q, s_next, epsilon)
+
+        # get delta
+        d = getDelta(q, s, a, r, s_next, a_next, gamma)
 
         # update Q
-        q = updateQ(q, s, a, r, s_next, a_next, gamma, alpha)
+        q, etraces = updateQ(q, s, a, d, r, etraces, lamda, gamma, alpha)
 
         # until s is terminal
-        if s_ts[3]:
-            trail.append('!')
-            break
-        else:
-            trail.append('_' if a in ['waiting', 'completed'] else ('B' if a in ['enter-long', 'stay-long'] else 'S'))
+        # we train on whole sequence
 
         a = a_next
         s = s_next
         i += 1
 
-    logging.warn('Training: ended {0} => {1:.2f}'.format(''.join(trail), r))
-    return q, r
+    return q, r, trail, etraces
 
 
 
@@ -280,33 +301,37 @@ def takeAction(s, a, trail):
 
     logging.info('Change: trail = {0}'.format(trail))
     logging.info('Change: state is now {0}...'.format(s_trade_status))
-    return s_trade_status
+    return s_trade_status, trail
 
 
-def getReward(a, close_now, close_entry, reward_max, progress):
-    logging.info('Reward: getting at progress {0}...'.format(progress))
-    # take profits from exits
-    if a == 'exit-long':
-        r = close_now - close_entry
-        # r = (close_now - close_entry) - (reward_max / 2)
-        # r -= (reward_max - r) * (1 - progress)
-    elif a == 'exit-short':
-        r = close_entry - close_now
-        # r = (close_entry - close_now) - (reward_max / 2)
-        # r -= (reward_max - r) * (1 - progress)
-    # penalty if no trading
-    elif progress == 1:
-        r = -reward_max
-    # progress penalised reward
-    else:
-        r = 0
-    logging.debug('Reward: raw {0}'.format(r))
-    # enhance growth
-    # r -= reward_max
-    # logging.debug('Reward: deduced {0}'.format(r))
-    # scale reward
-    r /= reward_max
-    logging.info('Reward: scaled {0:.4f}'.format(r))
+def getReward(trail, optimus, is_last):
+    logging.info('Reward: trail vs optimus')
+    optimus_len = len(optimus) + 0.
+
+    # precision
+    r_correct = sum(map(operator.eq, trail, optimus))
+    # r_fail = len(trail) - r_correct
+    r_precision = r_correct  # - r_fail
+    # r_precision += optimus_len
+    r_precision /= optimus_len  #* 2
+    # logging.debug('Reward: correct {0:.0f} and bad {1:.0f} => {2:.2f}'.format(r_correct, r_fail, r_precision))
+    logging.debug('Reward: correct {0:.0f} => {1:.2f}'.format(r_correct, r_precision))
+
+    # length
+    r_length = abs(len(trail) - optimus_len)
+    r_length_scaled = 1 - (r_length / optimus_len)
+    logging.debug('Reward: missing {0:.0f} => {1:.2f}'.format(r_length, r_length_scaled))
+
+    # congruence
+    r_congruence_diff = 0
+    for c in ['_', 'S', 'B']:
+        r_congruence_diff += abs(trail.count(c) - optimus.count(c))
+    r_congruence = 1 - (r_congruence_diff / optimus_len)
+    logging.debug('Reward: congruence diff {0:.0f} => {1:.2f}'.format(r_congruence_diff, r_congruence))
+
+    r = np.mean([r_precision, r_length_scaled, r_congruence])
+
+    logging.info('Reward: {0:.2f}'.format(r))
     return r
 
 
@@ -322,16 +347,16 @@ def getAction(q, s, epsilon):
 
     # exploration
     if random() < epsilon:
-        logging.debug('Action: explore ({0:.2f})'.format(epsilon))
+        logging.debug('Action: explore (<{0:.2f})'.format(epsilon))
         a = choice(actions_available)
 
     # exploitation
     else:
-        logging.debug('Action: exploit ({0:.2f})'.format(epsilon))
+        logging.debug('Action: exploit (>{0:.2f})'.format(epsilon))
         q_max = None
         for action in actions_available:
-            q_sa = q.get((tuple(s), action), random() * 10)
-            logging.debug('Qsa {0} {1:.2f}'.format(action, q_sa))
+            q_sa = q.get((tuple(s), action), random() * 10.)
+            logging.debug('Qsa action {0} is {1:.4f}'.format(action, q_sa))
             if q_sa > q_max:
                 q_max = q_sa
                 a = action
@@ -340,29 +365,55 @@ def getAction(q, s, epsilon):
     return a
 
 
-def updateQ(q, s, a, r, s_next, a_next, gamma, alpha):
-
-    q_sa = q.get((tuple(s), a), -r)
-    q_sa_next = q.get((tuple(s_next), a_next), -r)
+def getDelta(q, s, a, r, s_next, a_next, gamma):
+    logging.info('Delta: calculating...')
+    q_sa = q.get((tuple(s), a), 0)
+    if not s_next or not a_next:
+        q_sa_next = 0
+    else:
+        q_sa_next = q.get((tuple(s_next), a_next), r)
     d = r + (gamma * q_sa_next) - q_sa
-    if d:
-        logging.debug('Q: Qsa before {0:.4f}'.format(q_sa))
-        logging.debug('Q: Delta: calculated {0:.2f}'.format(d))
-        q_sa_updated = q_sa + (alpha * d)
-        q[(tuple(s), a)] = q_sa_updated
-        logging.debug('Q: Qsa after {0:.4f}'.format(q[(tuple(s), a)]))
+    logging.debug('Delta: r [{0:.2f}] + (gamma [{1:.2f}] * Qs`a` [{2:.4f}]) - Qsa [{3:.4f}]'.format(r, gamma, q_sa_next, q_sa))
+    logging.info('Delta: {0:.4f}'.format(d))
+    return d
 
-    return q
+
+def updateQ(q, s, a, d, r, etraces, lamda, gamma, alpha):
+    logging.info('Q: updating learning at {0:.2f} with lambda {1:.2f}...'.format(alpha, lamda))
+
+    # update current s,a
+    sa = (tuple(s), a)
+    etraces[sa] = etraces.get(sa, 0.) + 1
+
+    # update for all etraces
+    etraces_updated = {}
+    for sa, e_sa in etraces.iteritems():
+
+        # q (only if there is a reward)
+        if r:
+            q_sa = q.get(sa, r)
+            # logging.debug('Q: Qsa before {0:.4f}'.format(q_sa))
+            # logging.debug('Q: d:{0:.2f} e:{1:.2f}'.format(d, e_sa))
+            q_sa_updated = q_sa + (alpha * d * e_sa)
+            q[sa] = q_sa_updated
+            logging.debug('Q: before {0:.4f} \t et {1:.2f} \t after {2:.4f}'.format(q_sa, e_sa, q_sa_updated))
+
+        # decay etrace
+        if e_sa > 0.01:
+            etraces_updated[sa] = e_sa * gamma * lamda
+
+    return q, etraces_updated
 
 
 ########################################################################################################
 
 
 if __name__ == '__main__':
+    debug = False
+    lvl = logging.DEBUG if debug else logging.WARN
     logging.basicConfig(
-        # level=logging.WARN,
-        level=logging.DEBUG,
+        level=lvl,
         format='%(asctime)s %(name)-8s %(levelname)-8s %(message)s',
         # datefmt='%Y-%m-%d %H:%M:',
     )
-    main()
+    main(debug)
