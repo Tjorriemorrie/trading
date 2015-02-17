@@ -3,7 +3,7 @@ from os.path import realpath, dirname
 import pandas as pd
 import numpy as np
 import pickle
-from random import random, choice
+from random import random, choice, shuffle
 from pprint import pprint
 from sklearn.preprocessing import scale
 from time import time, sleep
@@ -22,6 +22,7 @@ CURRENCIES = [
     'USDCHF',
     'USDJPY',
 ]
+shuffle(CURRENCIES)
 
 INTERVALS = [
     # '60',
@@ -52,49 +53,48 @@ def main(debug):
 
         # df = setGlobalStats(df)
 
-        alpha = 0.10
-        epsilon = 0.01
-        gamma = 0.90
-        lamda = 0.01
+        alpha = 0.
+        epsilon = 0.
+        gamma = 0.9
+        lamda = 0.
         q = loadQ(currency, interval)
 
+        group_data = getGroupOptimus(df)
         time_start = time()
-        for group_name, group_df in df.groupby(pd.TimeGrouper(freq='M')):
-            group_max = group_df[:-1].close.max()
-            group_min = group_df[:-1].close.min()
-            reward_max = group_max - group_min
-            logging.info('Max reward for set {0:.4f} (max {1:.4f} min {2:.4f})'.format(reward_max, group_max, group_min))
-            optimus = ''
-            state = '_'
-            for i, row in group_df.iterrows():
-                # enter buy?
-                if row['close'] == group_min:
-                    state = 'B' if state == '_' else '!'
-                # enter sell?
-                if row['close'] == group_max:
-                    state = 'S' if state == '_' else '!'
-                optimus += state
-            logging.error('[{0}] {1}'.format(len(optimus), ''.join(optimus)))
+
+        # get accuracy for currency
+        for training_step in [0.75, 0.80]:
 
             epoch = 0
             results = []
             etraces = {}
+            # train till accuracy is reached
             while True:
                 epoch += 1
                 logging.info(' ')
                 logging.info('{0}'.format('=' * 20))
                 logging.info('EPOCH {0}'.format(epoch))
-                q, r, trail, etraces = train(group_df, q, alpha, epsilon, gamma, optimus, lamda, etraces)
 
-                results.append(r)
-                while len(results) > 100000:
-                    # results.pop(0)
+                # train all groups simultaneously (per epoch) to prevent overfitting
+                # go through all groups and then adjust
+                for group_name, group_info in group_data.iteritems():
+                    logging.info('Training group {0}'.format(group_name))
+                    group_df = group_info['group']
+                    optimus = group_info['optimus']
+                    q, r, trail, etraces = train(group_df, q, alpha, epsilon, gamma, optimus, lamda, etraces)
+                    results.append(r)
+
+                # results
+                while len(results) > 10000:
                     results.remove(min(results[:int(len(results)*.5)]))
                 results_avg = np.mean(results)
                 results_std = np.std(results)
-                if len(results) > 10000 and results_avg >= 0.95:
+                if len(results) > 1000 and results_avg >= training_step:
                     logging.error('Training finished!!!!')
                     break
+
+                    # if debug:
+                    #     break  # df groups
 
                 # adjust values
                 inverse_val = 1. - max(results_avg, 0.001)
@@ -102,15 +102,18 @@ def main(debug):
                 alpha = inverse_val / 3.
                 epsilon = alpha / 3.
 
-                if time() - time_start > 10 or debug:
-                    logging.warn('[{2}] {0} => {1:.0f}%'.format(''.join(trail), r * 100, len(trail)))
-                    logging.warn('[{0}] {1:.0f}-{5:.0f} % [e:{2:.2f}% a:{3:.1f}% l:{4:.0f}%]'.format(
+                if time() - time_start > 120 or debug:
+                    # logging.warn('{3} {4:.0f} {5} [{2}] {0} => {1:.0f}%'.format(''.join(trail), r * 100, len(trail), currency, training_step * 100, group_name))
+                    logging.warn('{7} {8:.0f} [{0}] {1:.0f}-{6:.0f}-{5:.0f} % [e:{2:.2f}% a:{3:.1f}% l:{4:.0f}%]'.format(
                         epoch,
                         (results_avg - results_std) * 100,
                         epsilon * 100,
                         alpha * 100,
                         lamda * 100,
-                        (results_avg + results_std) * 100
+                        (results_avg + results_std) * 100,
+                        results_avg * 100,
+                        currency,
+                        training_step * 100,
                     ))
                     saveQ(currency, interval, q)
                     time_start = time()
@@ -118,11 +121,13 @@ def main(debug):
                 if debug:
                     break  # epochs
 
-            break  # groups
+            if debug:
+                break  # training steps
 
         saveQ(currency, interval, q)
 
-        break  # currencies
+        if debug:
+            break  # currencies
 
 
 def loadData(currency, interval):
@@ -229,6 +234,40 @@ def train(df, q, alpha, epsilon, gamma, optimus, lamda, etraces):
     return q, r, trail, etraces
 
 
+def getGroupOptimus(df):
+    logging.info('Group Optimus: calculating...')
+    group_data = {}
+    for group_name, group_df in df.groupby(pd.TimeGrouper(freq='M')):
+
+        if len(group_df) < 18:
+            logging.warn('Skipping {0} as not enough days'.format(group_name))
+            continue
+
+        group_max = group_df[:-1].close.max()
+        group_min = group_df[:-1].close.min()
+        reward_max = group_max - group_min
+        logging.info('Max reward for set {0:.4f} (max {1:.4f} min {2:.4f})'.format(reward_max, group_max, group_min))
+
+        optimus = ''
+        state = '_'
+        for i, row in group_df.iterrows():
+            # enter buy?
+            if row['close'] == group_min:
+                state = 'B' if state == '_' else '!'
+            # enter sell?
+            if row['close'] == group_max:
+                state = 'S' if state == '_' else '!'
+            optimus += state
+
+        logging.info('[{0}] {1}'.format(len(optimus), ''.join(optimus)))
+        group_data[group_name] = {
+            'group': group_df,
+            'optimus': optimus,
+        }
+
+    logging.info('Group Optimus: calculated {0}'.format(len(group_data)))
+    return group_data
+
 
 ########################################################################################################
 # WORLD
@@ -315,12 +354,13 @@ def getReward(trail, optimus):
     logging.debug('Reward: correct {0:.0f} => {1:.2f}'.format(r_correct, r_precision))
 
     # length
-    r_length_optimus = optimus.count('B' if 'B' in optimus else 'S')
-    r_length_trail = trail.count('B' if 'B' in optimus else 'S')
-    r_length = 1 - (abs(r_length_trail - r_length_optimus) / max(optimus_len - r_length_optimus, r_length_optimus))
-    logging.debug('Reward: trade length {0:.0f} vs {1:.0f} => {2:.2f}'.format(r_length_trail, r_length_optimus, r_length))
-
-    r = np.mean([r_precision, r_length])
+    # r_length_optimus = optimus.count('B' if 'B' in optimus else 'S')
+    # r_length_trail = trail.count('B' if 'B' in optimus else 'S')
+    # r_length = 1 - (abs(r_length_trail - r_length_optimus) / max(optimus_len - r_length_optimus, r_length_optimus))
+    # logging.debug('Reward: trade length {0:.0f} vs {1:.0f} => {2:.2f}'.format(r_length_trail, r_length_optimus, r_length))
+    #
+    # r = np.mean([r_precision, r_length])
+    r = r_precision
 
     logging.info('Reward: {0:.2f}'.format(r))
     return r

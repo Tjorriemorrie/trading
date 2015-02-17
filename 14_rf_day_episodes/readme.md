@@ -36,7 +36,6 @@ GOOD
     early positive ticks should boost entries, and last positive ticks should boost exits  
     but how many? 24 * 60 = 1440 minutes in day / 15min = 96 groups: thus 100% rounded
 
-
 BAD
 - Add feature for current state for every action
     this won't help, it'll be the same for every action?
