@@ -3,11 +3,14 @@ from os.path import realpath, dirname
 import pandas as pd
 import numpy as np
 import pickle
+import argparse
 from random import random, choice, shuffle
 from pprint import pprint
 from sklearn.preprocessing import scale
 from time import time, sleep
 import operator
+import datetime
+import calendar
 
 
 CURRENCIES = [
@@ -22,7 +25,6 @@ CURRENCIES = [
     'USDCHF',
     'USDJPY',
 ]
-shuffle(CURRENCIES)
 
 INTERVALS = [
     # '60',
@@ -44,26 +46,36 @@ ACTIONS = [
 
 def main(debug):
     interval = choice(INTERVALS)
-    for currency in CURRENCIES:
-        logging.info('Training {0} on {1}...'.format(currency, interval))
 
-        df = loadData(currency, interval)
+    # get accuracy for currency
+    for training_step in [
+        # 0.45,
+        # 0.60,
+        # 0.65,
+        0.70,
+        0.75,
+        0.80,
+    ]:
 
-        df = dropOutliers(df)
+        shuffle(CURRENCIES)
+        for currency in CURRENCIES:
+            logging.warn('Training {0} on {1} to reach {2:.0f}%...'.format(currency, interval, training_step * 100))
 
-        # df = setGlobalStats(df)
+            df = loadData(currency, interval)
 
-        alpha = 0.
-        epsilon = 0.
-        gamma = 0.9
-        lamda = 0.
-        q = loadQ(currency, interval)
+            df = setGlobalStats(df)
+            # print df
 
-        group_data = getGroupOptimus(df)
-        time_start = time()
+            df = dropOutliers(df)
 
-        # get accuracy for currency
-        for training_step in [0.75, 0.80]:
+            alpha = 0.
+            epsilon = 0.
+            gamma = 0.9
+            lamda = 0.
+            q = loadQ(currency, interval)
+
+            group_data = getGroupOptimus(df)
+            time_start = time() - 55
 
             epoch = 0
             results = []
@@ -81,8 +93,11 @@ def main(debug):
                     logging.info('Training group {0}'.format(group_name))
                     group_df = group_info['group']
                     optimus = group_info['optimus']
-                    q, r, trail, etraces = train(group_df, q, alpha, epsilon, gamma, optimus, lamda, etraces)
+                    bdays = group_info['bdays']
+                    q, r, trail, etraces = train(group_df, q, alpha, epsilon, gamma, optimus, lamda, etraces, bdays)
                     results.append(r)
+                    if debug:
+                        break  # df groups
 
                 # results
                 while len(results) > 10000:
@@ -93,16 +108,13 @@ def main(debug):
                     logging.error('Training finished!!!!')
                     break
 
-                    # if debug:
-                    #     break  # df groups
-
                 # adjust values
                 inverse_val = 1. - max(results_avg, 0.001)
                 lamda = inverse_val
                 alpha = inverse_val / 3.
                 epsilon = alpha / 3.
 
-                if time() - time_start > 120 or debug:
+                if time() - time_start > 60 or debug:
                     # logging.warn('{3} {4:.0f} {5} [{2}] {0} => {1:.0f}%'.format(''.join(trail), r * 100, len(trail), currency, training_step * 100, group_name))
                     logging.warn('{7} {8:.0f} [{0}] {1:.0f}-{6:.0f}-{5:.0f} % [e:{2:.2f}% a:{3:.1f}% l:{4:.0f}%]'.format(
                         epoch,
@@ -121,13 +133,13 @@ def main(debug):
                 if debug:
                     break  # epochs
 
-            if debug:
-                break  # training steps
+            saveQ(currency, interval, q)
 
-        saveQ(currency, interval, q)
+            if debug:
+                break  # currencies
 
         if debug:
-            break  # currencies
+            break  # training steps
 
 
 def loadData(currency, interval):
@@ -166,6 +178,26 @@ def dropOutliers(df):
     return df
 
 
+def setGlobalStats(df):
+    logging.info('DF: adding non-state stats...')
+    hlc = df.apply(lambda x: (x['high'] + x['low'] + x['close']) / 3, axis=1)
+    avg_5 = pd.rolling_mean(hlc, 5)
+    avg_20 = pd.rolling_mean(hlc, 20)
+    df['ma_crossover_bullish'] = avg_5 >= avg_20
+
+    avg_5_y = avg_5.shift(+1)
+    avg_20_y = avg_20.shift(+1)
+    df['ma_quick_bullish'] = avg_5 >= avg_5_y
+    df['ma_signal_bullish'] = avg_20 >= avg_20_y
+
+    ma_diff = avg_5 - avg_20
+    ma_diff_y = avg_5_y - avg_20_y
+    df['ma_crossover_divergence'] = ma_diff >= ma_diff_y
+
+    logging.info('DF: added non-state stats')
+    return df
+
+
 def loadQ(currency, interval):
     logging.info('Q: loading...')
     try:
@@ -184,14 +216,14 @@ def saveQ(currency, interval, q):
     logging.info('Q: saved {0}'.format(len(q)))
 
 
-def train(df, q, alpha, epsilon, gamma, optimus, lamda, etraces):
+def train(df, q, alpha, epsilon, gamma, optimus, lamda, etraces, bdays):
     logging.info('Training: started...')
     r = 0.
     trail = ''
 
     # initial state
     i = 0.
-    s = getState(df, i)
+    s = getState(df, i, bdays)
 
     # initial action
     a = getAction(q, s, epsilon)
@@ -215,7 +247,7 @@ def train(df, q, alpha, epsilon, gamma, optimus, lamda, etraces):
             s_next = None
             a_next = None
         else:
-            s_next = getState(df, i_next, s_ts)
+            s_next = getState(df, i_next, bdays, s_ts)
             a_next = getAction(q, s_next, epsilon)
 
         # get delta
@@ -239,8 +271,17 @@ def getGroupOptimus(df):
     group_data = {}
     for group_name, group_df in df.groupby(pd.TimeGrouper(freq='M')):
 
-        if len(group_df) < 18:
-            logging.warn('Skipping {0} as not enough days'.format(group_name))
+        if not len(group_df):
+            logging.info('Skipping {0} as no days'.format(group_name))
+            continue
+
+        first_bday = group_df.index[0]
+        first_day = first_bday.replace(day=1)
+        last_day = first_day.replace(day=calendar.monthrange(first_bday.year, first_bday.month)[1])
+        bdays = pd.bdate_range(start=first_bday, end=last_day)
+
+        if len(group_df) / len(bdays) < 0.50:
+            logging.info('Skipping {0} as not enough days'.format(group_name))
             continue
 
         group_max = group_df[:-1].close.max()
@@ -263,6 +304,7 @@ def getGroupOptimus(df):
         group_data[group_name] = {
             'group': group_df,
             'optimus': optimus,
+            'bdays': len(bdays),
         }
 
     logging.info('Group Optimus: calculated {0}'.format(len(group_data)))
@@ -273,7 +315,7 @@ def getGroupOptimus(df):
 # WORLD
 ########################################################################################################
 
-def getState(df, i, s_ts=None):
+def getState(df, i, bdays, s_ts=None):
     logging.info('State: from {0}...'.format(i))
     s = []
 
@@ -286,9 +328,22 @@ def getState(df, i, s_ts=None):
     logging.debug('State: trade status {0}'.format(s_trade_status))
 
     # group progress
-    s_group_progress = [1 if i/len(df) > t/100. else 0 for t in xrange(0, 100)]
+    s_group_progress = [1 if (i+1)/bdays > t/25. else 0 for t in xrange(0, 25)]
     s += s_group_progress
     logging.debug('State: group progress {0}'.format(s_group_progress))
+
+    # current row
+    row = df.iloc[i]
+    # print row
+
+    # trend 5/20
+    s_trend = []
+    s_trend.append(1 if row['ma_crossover_bullish'] else 0)
+    s_trend.append(1 if row['ma_quick_bullish'] else 0)
+    s_trend.append(1 if row['ma_signal_bullish'] else 0)
+    s_trend.append(1 if row['ma_crossover_divergence'] else 0)
+    s += s_trend
+    logging.debug('State: moving average {0}'.format(s_trend))
 
     logging.info('State: {0}/{1}'.format(sum(s), len(s)))
     return s
@@ -440,11 +495,17 @@ def updateQ(q, s, a, d, r, etraces, lamda, gamma, alpha):
 
 
 if __name__ == '__main__':
-    debug = False
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d', '--debug', action='store_true')
+    args = parser.parse_args()
+
+    debug = args.debug
     lvl = logging.DEBUG if debug else logging.WARN
+
     logging.basicConfig(
         level=lvl,
         format='%(asctime)s %(name)-8s %(levelname)-8s %(message)s',
         # datefmt='%Y-%m-%d %H:%M:',
     )
+
     main(debug)
