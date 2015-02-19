@@ -180,6 +180,8 @@ def dropOutliers(df):
 
 def setGlobalStats(df):
     logging.info('DF: adding non-state stats...')
+
+    # moving average
     hlc = df.apply(lambda x: (x['high'] + x['low'] + x['close']) / 3, axis=1)
     avg_5 = pd.rolling_mean(hlc, 5)
     avg_20 = pd.rolling_mean(hlc, 20)
@@ -193,6 +195,19 @@ def setGlobalStats(df):
     ma_diff = avg_5 - avg_20
     ma_diff_y = avg_5_y - avg_20_y
     df['ma_crossover_divergence'] = ma_diff >= ma_diff_y
+
+    # pivots
+    df_pivots = pd.DataFrame(dtype=float)
+    df_pivots['close_y2'] = df['close'].shift(-2)
+    df_pivots['close_y1'] = df['close'].shift(-1)
+    df_pivots['close'] = df['close']
+    df_pivots['close_t1'] = df['close'].shift(1)
+    df_pivots['close_t2'] = df['close'].shift(2)
+    df['peak_high'] = df_pivots.apply(lambda x: 1 if x['close_y2'] < x['close_y1'] and x['close_y1'] < x['close'] and x['close'] > x['close_t1'] and x['close_t1'] > x['close_t2'] else 0, axis=1)
+    df['peak_low'] = df_pivots.apply(lambda x: 1 if x['close_y2'] > x['close_y1'] and x['close_y1'] > x['close'] and x['close'] < x['close_t1'] and x['close_t1'] < x['close_t2'] else 0, axis=1)
+
+    # print df
+    # raise Exception('foo')
 
     logging.info('DF: added non-state stats')
     return df
@@ -344,6 +359,11 @@ def getState(df, i, bdays, s_ts=None):
     s_trend.append(1 if row['ma_crossover_divergence'] else 0)
     s += s_trend
     logging.debug('State: moving average {0}'.format(s_trend))
+
+    # peaks
+    s_peaks = [row['peak_high'], row['peak_low']]
+    s += s_peaks
+    logging.debug('State: peaks {0}'.format(s_peaks))
 
     logging.info('State: {0}/{1}'.format(sum(s), len(s)))
     return s
