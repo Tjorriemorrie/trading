@@ -43,18 +43,14 @@ ACTIONS = [
 ]
 
 
-
 def main(debug):
     interval = choice(INTERVALS)
 
     # get accuracy for currency
     for training_step in [
-        # 0.45,
-        # 0.60,
-        # 0.65,
+        0.20,
+        0.50,
         0.70,
-        0.75,
-        0.80,
     ]:
 
         shuffle(CURRENCIES)
@@ -100,18 +96,18 @@ def main(debug):
                         break  # df groups
 
                 # results
-                while len(results) > 10000:
+                while len(results) > 1000:
                     results.remove(min(results[:int(len(results)*.5)]))
                 results_avg = np.mean(results)
                 results_std = np.std(results)
-                if len(results) > 1000 and results_avg >= training_step:
+                if len(results) > 500 and results_avg >= training_step:
                     logging.error('Training finished!!!!')
                     break
 
                 # adjust values
                 inverse_val = 1. - max(results_avg, 0.001)
-                lamda = inverse_val
-                alpha = inverse_val / 3.
+                lamda = results_avg
+                alpha = inverse_val / 4.
                 epsilon = alpha / 3.
 
                 if time() - time_start > 60 or debug:
@@ -183,28 +179,76 @@ def setGlobalStats(df):
 
     # moving average
     hlc = df.apply(lambda x: (x['high'] + x['low'] + x['close']) / 3, axis=1)
+
     avg_5 = pd.rolling_mean(hlc, 5)
-    avg_20 = pd.rolling_mean(hlc, 20)
-    df['ma_crossover_bullish'] = avg_5 >= avg_20
-
     avg_5_y = avg_5.shift(+1)
-    avg_20_y = avg_20.shift(+1)
     df['ma_quick_bullish'] = avg_5 >= avg_5_y
-    df['ma_signal_bullish'] = avg_20 >= avg_20_y
+    avg_5_diff = abs(avg_5 - avg_5_y)
+    avg_5_diff_y = avg_5_diff.shift(+1)
+    df['ma_quick_divergence'] = avg_5_diff >= avg_5_diff_y
+    df['ma_quick_magnitude'] = avg_5_diff > avg_5_diff.mean()
 
+    avg_20 = pd.rolling_mean(hlc, 20)
+    avg_20_y = avg_20.shift(+1)
+    df['ma_signal_bullish'] = avg_20 >= avg_20_y
+    avg_20_diff = abs(avg_20 - avg_20_y)
+    avg_20_diff_y = avg_20_diff.shift(+1)
+    df['ma_signal_divergence'] = avg_20_diff >= avg_20_diff_y
+    df['ma_signal_magnitude'] = avg_20_diff > avg_20_diff.mean()
+
+    df['ma_crossover_bullish'] = avg_5 >= avg_20
     ma_diff = avg_5 - avg_20
     ma_diff_y = avg_5_y - avg_20_y
     df['ma_crossover_divergence'] = ma_diff >= ma_diff_y
+    df['ma_crossover_magnitude'] = ma_diff >= ma_diff.mean()
 
     # pivots
     df_pivots = pd.DataFrame(dtype=float)
-    df_pivots['close_y2'] = df['close'].shift(-2)
-    df_pivots['close_y1'] = df['close'].shift(-1)
-    df_pivots['close'] = df['close']
-    df_pivots['close_t1'] = df['close'].shift(1)
-    df_pivots['close_t2'] = df['close'].shift(2)
-    df['peak_high'] = df_pivots.apply(lambda x: 1 if x['close_y2'] < x['close_y1'] and x['close_y1'] < x['close'] and x['close'] > x['close_t1'] and x['close_t1'] > x['close_t2'] else 0, axis=1)
-    df['peak_low'] = df_pivots.apply(lambda x: 1 if x['close_y2'] > x['close_y1'] and x['close_y1'] > x['close'] and x['close'] < x['close_t1'] and x['close_t1'] < x['close_t2'] else 0, axis=1)
+    df_pivots['hlc'] = hlc
+    df_pivots['hlc_y1'] = hlc.shift(1)
+    df_pivots['hlc_y2'] = hlc.shift(2)
+    df_pivots['hlc_y3'] = hlc.shift(3)
+    df_pivots['hlc_y4'] = hlc.shift(4)
+    df['pivot_high_major'] = df_pivots.apply(lambda x: 1 if (x['hlc_y4'] < x['hlc_y3'] < x['hlc_y2'] and x['hlc_y2'] > x['hlc_y1'] > x['hlc']) else 0, axis=1)
+    df['pivot_high_minor'] = df_pivots.apply(lambda x: 1 if (x['hlc_y2'] < x['hlc_y1'] and x['hlc_y1'] > x['hlc']) else 0, axis=1)
+    df['pivot_low_major'] = df_pivots.apply(lambda x: 1 if (x['hlc_y4'] > x['hlc_y3'] > x['hlc_y2'] and x['hlc_y2'] < x['hlc_y1'] < x['hlc']) else 0, axis=1)
+    df['pivot_low_minor'] = df_pivots.apply(lambda x: 1 if (x['hlc_y2'] > x['hlc_y1'] and x['hlc_y1'] < x['hlc']) else 0, axis=1)
+
+    # situationals
+    df['higher_high'] = df_pivots.apply(lambda x: 1 if (x['hlc'] > x['hlc_y1']) else 0, axis=1)
+    df['lower_low'] = df_pivots.apply(lambda x: 1 if (x['hlc'] < x['hlc_y1']) else 0, axis=1)
+    df['higher_soldiers'] = df_pivots.apply(lambda x: 1 if (x['hlc'] > x['hlc_y1'] > x['hlc_y2']) else 0, axis=1)
+    df['lower_soldiers'] = df_pivots.apply(lambda x: 1 if (x['hlc'] < x['hlc_y1'] < x['hlc_y2']) else 0, axis=1)
+
+    # ATR
+    df_atr = pd.DataFrame(dtype=float)
+    df_atr['range'] = abs(df['high'] - df['low'])
+    df_atr['close_y'] = df['close'].shift(+1)
+    df_atr['h_from_c'] = abs(df['high'] - df_atr['close_y'])
+    df_atr['l_from_c'] = abs(df['low'] - df_atr['close_y'])
+    df_atr['tr'] = df_atr.apply(lambda x: max(x['range'], x['h_from_c'], x['l_from_c']), axis=1)
+
+    avg_5 = pd.rolling_mean(df_atr['tr'], 5)
+    avg_5_y = avg_5.shift(+1)
+    df['atr_quick_bullish'] = avg_5 >= avg_5_y
+    avg_5_diff = abs(avg_5 - avg_5_y)
+    avg_5_diff_y = avg_5_diff.shift(+1)
+    df['atr_quick_divergence'] = avg_5_diff >= avg_5_diff_y
+    df['atr_quick_magnitude'] = avg_5_diff > avg_5_diff.mean()
+
+    avg_20 = pd.rolling_mean(df_atr['tr'], 20)
+    avg_20_y = avg_20.shift(+1)
+    df['atr_signal_bullish'] = avg_20 >= avg_20_y
+    avg_20_diff = abs(avg_20 - avg_20_y)
+    avg_20_diff_y = avg_20_diff.shift(+1)
+    df['atr_signal_divergence'] = avg_20_diff >= avg_20_diff_y
+    df['atr_signal_magnitude'] = avg_20_diff > avg_20_diff.mean()
+
+    df['atr_crossover_bullish'] = avg_5 >= avg_20
+    atr_diff = avg_5 - avg_20
+    atr_diff_y = avg_5_y - avg_20_y
+    df['atr_crossover_divergence'] = atr_diff >= atr_diff_y
+    df['atr_crossover_magnitude'] = atr_diff >= atr_diff.mean()
 
     # print df
     # raise Exception('foo')
@@ -353,17 +397,51 @@ def getState(df, i, bdays, s_ts=None):
 
     # trend 5/20
     s_trend = []
-    s_trend.append(1 if row['ma_crossover_bullish'] else 0)
     s_trend.append(1 if row['ma_quick_bullish'] else 0)
+    s_trend.append(1 if row['ma_quick_divergence'] else 0)
+    s_trend.append(1 if row['ma_quick_magnitude'] else 0)
     s_trend.append(1 if row['ma_signal_bullish'] else 0)
+    s_trend.append(1 if row['ma_signal_divergence'] else 0)
+    s_trend.append(1 if row['ma_signal_magnitude'] else 0)
+    s_trend.append(1 if row['ma_crossover_bullish'] else 0)
     s_trend.append(1 if row['ma_crossover_divergence'] else 0)
+    s_trend.append(1 if row['ma_crossover_magnitude'] else 0)
     s += s_trend
     logging.debug('State: moving average {0}'.format(s_trend))
 
     # peaks
-    s_peaks = [row['peak_high'], row['peak_low']]
+    s_peaks = [
+        row['pivot_high_major'],
+        row['pivot_high_minor'],
+        row['pivot_low_major'],
+        row['pivot_low_minor']
+    ]
     s += s_peaks
     logging.debug('State: peaks {0}'.format(s_peaks))
+
+    # situationals
+    s_situationals = [
+        row['higher_high'],
+        row['lower_low'],
+        row['higher_soldiers'],
+        row['lower_soldiers']
+    ]
+    s += s_situationals
+    logging.debug('State: situationals {0}'.format(s_situationals))
+
+    # ATR 5/20
+    s_atr = []
+    s_atr.append(1 if row['atr_quick_bullish'] else 0)
+    s_atr.append(1 if row['atr_quick_divergence'] else 0)
+    s_atr.append(1 if row['atr_quick_magnitude'] else 0)
+    s_atr.append(1 if row['atr_signal_bullish'] else 0)
+    s_atr.append(1 if row['atr_signal_divergence'] else 0)
+    s_atr.append(1 if row['atr_signal_magnitude'] else 0)
+    s_atr.append(1 if row['atr_crossover_bullish'] else 0)
+    s_atr.append(1 if row['atr_crossover_divergence'] else 0)
+    s_atr.append(1 if row['atr_crossover_magnitude'] else 0)
+    s += s_atr
+    logging.debug('State: average true range {0}'.format(s_atr))
 
     logging.info('State: {0}/{1}'.format(sum(s), len(s)))
     return s

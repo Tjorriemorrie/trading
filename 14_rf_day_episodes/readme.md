@@ -55,6 +55,12 @@ GOOD
     
 - Add pivots
     knowing if price has peaked could help
+    wtf, you don't have future data, this peak will be from 2 ticks ago
+    
+- Add continuations
+    this does not mean it's the lowest low/highest high in the group...
+    higher highs and lower lows
+    3 soldiers as well
 
 
 
