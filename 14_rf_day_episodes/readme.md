@@ -1,6 +1,19 @@
 # Reinforcement learning
 ---
 
+#FUCK
+2015-02-25 11:03:52,301 root     WARNING  AUDUSD [1440] on 2015-02-24 00:00:00 [16] items => S!!!!!!!!!!!!!!!
+2015-02-25 11:04:06,797 root     WARNING  EURGBP [1440] on 2015-02-24 00:00:00 [16] items => B!!!!!!!!!!!!!!!
+2015-02-25 11:04:17,639 root     WARNING  EURJPY [1440] on 2015-02-24 00:00:00 [16] items => _S!!!!!!!!!!!!!!
+2015-02-25 11:04:39,037 root     WARNING  EURUSD [1440] on 2015-02-24 00:00:00 [15] items => BB!!!!!!!!!!!!!
+2015-02-25 11:04:53,294 root     WARNING  GBPJPY [1440] on 2015-02-24 00:00:00 [16] items => B!!!!!!!!!!!!!!!
+2015-02-25 11:05:09,064 root     WARNING  GBPUSD [1440] on 2015-02-24 00:00:00 [16] items => B!!!!!!!!!!!!!!!
+2015-02-25 11:05:22,609 root     WARNING  NZDUSD [1440] on 2015-02-24 00:00:00 [14] items => __B!!!!!!!!!!!
+2015-02-25 11:05:36,280 root     WARNING  USDCAD [1440] on 2015-02-24 00:00:00 [12] items => B!!!!!!!!!!!
+2015-02-25 11:05:56,338 root     WARNING  USDCHF [1440] on 2015-02-24 00:00:00 [16] items => S!!!!!!!!!!!!!!!
+2015-02-25 11:06:15,978 root     WARNING  USDJPY [1440] on 2015-02-24 00:00:00 [16] items => SS!!!!!!!!!!!!!!
+
+
 resistance lines does not work.
 let's try reinforcement learning, but the episodes all fit within one day/group.
 There will be a penalty if trade is not closed before end of day

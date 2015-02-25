@@ -1,5 +1,7 @@
 import logging
-from os.path import realpath, dirname
+import os
+from os.path import realpath, dirname, join, isfile
+from os import listdir
 import pandas as pd
 import numpy as np
 import pickle
@@ -11,6 +13,8 @@ from time import time, sleep
 import operator
 import datetime
 import calendar
+import shutil
+import tempfile
 
 
 CURRENCIES = [
@@ -46,9 +50,12 @@ ACTIONS = [
 def main(debug):
     interval = choice(INTERVALS)
 
+    minutes = 0
     while True:
-        seconds_to_run = 60 * 5
-        seconds_info_intervals = seconds_to_run / 10
+        minutes += 1
+        seconds_to_run = 60 * minutes
+        seconds_info_intervals = seconds_to_run / 3
+        logging.error('Training each currency for {0} minutes'.format(minutes))
 
         shuffle(CURRENCIES)
         for currency in CURRENCIES:
@@ -89,6 +96,7 @@ def main(debug):
                     optimus = group_info['optimus']
                     bdays = group_info['bdays']
                     q, r, trail, etraces = train(group_df, q, alpha, epsilon, gamma, optimus, lamda, etraces, bdays)
+                    # logging.error('{2:.2f} trail vs optimus = {0} vs {1}'.format(trail, optimus, r))
                     results.append(r)
                     if debug:
                         break  # df groups
@@ -96,17 +104,18 @@ def main(debug):
                 # results
                 results_avg = np.mean(results)
                 results_std = np.std(results)
-                while len(results) > 1000:
-                    results.remove(min(results[:int(len(results)*results_avg)]))
+                while len(results) > minutes * 1000:
+                    # results.remove(min(results[:int(len(results)*results_avg)]))
+                    results.pop(0)
 
                 # adjust values
                 inverse_val = 1. - max(results_avg, 0.001)
-                lamda = results_avg
+                lamda = max(results_avg, 0)
                 alpha = inverse_val / 4.
                 epsilon = alpha / 3.
 
                 if time() - time_start > time_interval or debug:
-                    logging.warn('{7} [{0}] {1:.0f}-{6:.0f}-{5:.0f} % [e:{2:.2f}% a:{3:.1f}% l:{4:.0f}%]'.format(
+                    logging.warn('{7} [{0}] {1:.0f}/{6:.0f}/{5:.0f} % [e:{2:.2f}% a:{3:.1f}% l:{4:.0f}%]'.format(
                         epoch,
                         (results_avg - results_std) * 100,
                         epsilon * 100,
@@ -130,6 +139,8 @@ def main(debug):
 
         if debug:
             break  # forever
+
+        copyBatch()
 
 
 def loadData(currency, interval):
@@ -256,7 +267,8 @@ def loadQ(currency, interval):
     try:
         with open('{0}/models/{1}_{2}.q'.format(realpath(dirname(__file__)), currency, interval), 'rb') as f:
             q = pickle.load(f)
-    except IOError:
+    except (IOError, EOFError) as e:
+        logging.error('Could not load Q for {0}'.format(currency))
         q = {}
     logging.info('Q: loaded {0}'.format(len(q)))
     return q
@@ -264,8 +276,11 @@ def loadQ(currency, interval):
 
 def saveQ(currency, interval, q):
     logging.info('Q: saving...')
-    with open('{0}/models/{1}_{2}.q'.format(realpath(dirname(__file__)), currency, interval), 'wb') as f:
-        pickle.dump(q, f)
+    filename = '{0}/models/{1}_{2}.q'.format(realpath(dirname(__file__)), currency, interval)
+    with tempfile.NamedTemporaryFile('wb', dir=os.path.dirname(filename), delete=False) as tf:
+        pickle.dump(q, tf)
+        tempname = tf.name
+        os.rename(tempname, filename)
     logging.info('Q: saved {0}'.format(len(q)))
 
 
@@ -362,6 +377,16 @@ def getGroupOptimus(df):
 
     logging.info('Group Optimus: calculated {0}'.format(len(group_data)))
     return group_data
+
+
+def copyBatch():
+    src = '{0}/models'.format(realpath(dirname(__file__)))
+    dest = '{0}/batch'.format(realpath(dirname(__file__)))
+    src_files = listdir(src)
+    for file_name in src_files:
+        full_file_name = join(src, file_name)
+        if isfile(full_file_name):
+            shutil.copy(full_file_name, dest)
 
 
 ########################################################################################################
@@ -492,7 +517,7 @@ def takeAction(s, a, trail):
 
 
 def getReward(trail, optimus):
-    logging.info('Reward: trail vs optimus')
+    logging.info('Reward: trail vs optimus [{0} vs {1}]'.format(trail, optimus))
     optimus_len = len(optimus) + 0.
 
     # precision
@@ -508,6 +533,16 @@ def getReward(trail, optimus):
     #
     # r = np.mean([r_precision, r_length])
     r = r_precision
+
+    # penalties
+    # if trade does not eom
+    if len(optimus) == len(trail) and trail[-1] != '!':
+        r -= 1.00
+        logging.debug('Trail does not end at end of group {0}'.format(trail))
+    # if trade length is too small
+    r_length = 1. / (trail.count('S') + trail.count('B') + 1.)
+    r -= r_length
+    logging.debug('Trail length penalised with {0}'.format(r_length))
 
     logging.info('Reward: {0:.2f}'.format(r))
     return r
