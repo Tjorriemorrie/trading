@@ -18,16 +18,16 @@ import tempfile
 
 
 CURRENCIES = [
-    'AUDUSD',
-    'EURGBP',
-    'EURJPY',
-    'EURUSD',
-    'GBPJPY',
-    'GBPUSD',
-    'NZDUSD',
+    # 'AUDUSD',
+    # 'EURGBP',
+    # 'EURJPY',
+    # 'EURUSD',
+    # 'GBPJPY',
+    # 'GBPUSD',
+    # 'NZDUSD',
     'USDCAD',
-    'USDCHF',
-    'USDJPY',
+    # 'USDCHF',
+    # 'USDJPY',
 ]
 
 INTERVALS = [
@@ -54,7 +54,7 @@ def main(debug):
     while True:
         minutes += 1
         seconds_to_run = 60 * minutes
-        seconds_info_intervals = seconds_to_run / 3
+        seconds_info_intervals = seconds_to_run / 9
         logging.error('Training each currency for {0} minutes'.format(minutes))
 
         shuffle(CURRENCIES)
