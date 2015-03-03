@@ -36,7 +36,7 @@ def main(debug):
     while True:
         minutes += 1
         seconds_to_run = 60 * minutes
-        seconds_info_intervals = seconds_to_run / 10
+        seconds_info_intervals = seconds_to_run / 4
         logging.error('Training each currency for {0} minutes'.format(minutes))
 
         # shuffle(CURRENCIES)
@@ -60,6 +60,7 @@ def main(debug):
             epoch = 0
             rewards = []
             errors = []
+            ticks = []
             logging.warn('Training {0} on {1} with {2} ticks...'.format(currency, interval, len(df)))
             while True:
                 epoch += 1
@@ -70,18 +71,20 @@ def main(debug):
                 index_start = randint(0, len(df)-1)
                 df_inner = df.iloc[index_start:]
                 logging.info('Epoch: at {0} with {1} ticks'.format(index_start, len(df_inner)))
-                q, r, error = train(df_inner, q, alpha, epsilon, PERIODS, actions)
+                q, r, error, tick = train(df_inner, q, alpha, epsilon, PERIODS, actions)
 
                 # only if epoch finished properly
                 if r and error:
                     # results
                     rewards.append(r)
                     errors.append(error * 10000.)
+                    ticks.append(tick)
 
                     # prune lengths
                     while len(rewards) > minutes * 1000:
                         rewards.pop(0)
                         errors.pop(0)
+                        ticks.pop(0)
 
                     # RMSD
                     rmsd = np.sqrt(np.mean([e**2 for e in errors]))
@@ -95,13 +98,14 @@ def main(debug):
                     # epsilon = alpha / 3.
 
                     if time() - time_start > time_interval or debug:
-                        logging.warn('{0} [{1:05d}] RMSD {2:03d} NET {3:03d} [sum:{4:.2f} ratio:{5:.2f}]'.format(
+                        logging.warn('{0} [{1:05d}] RMSD {2:03d} PPT {3:03d} WR {5:.0f}% [ticks:{6:.1f} sum:{4:.1f}]'.format(
                             currency,
                             epoch,
                             int(rmsd),
                             int(np.mean(rewards) * 10000.),
                             sum(rewards),
-                            np.mean(wins),
+                            np.mean(wins) * 100,
+                            np.mean(ticks),
                         ))
                         saveQ(currency, interval, q)
                         time_interval += seconds_info_intervals
@@ -161,8 +165,10 @@ def getReward(df, a):
     take = entry + trail
     logging.debug('Reward: trail at {0:.4f}'.format(trail))
 
+    ticks = -1
     r = None
     for i, row in df.iterrows():
+        ticks += 1
         current = row['close']
         logging.debug('Reward: {0} {1} {2:.4f} stop {3:.4f}'.format(a_trade, i, current, take))
         # buy
@@ -189,10 +195,10 @@ def getReward(df, a):
                 take = current + trail
 
     if r:
-        logging.info('Reward: {0:.4f}'.format(r))
+        logging.info('Reward: r = {0:.4f} ticks = {1}'.format(r, ticks))
     else:
         logging.info('Reward: None')
-    return r
+    return r, ticks
 
 
 
@@ -211,7 +217,7 @@ def train(df, q, alpha, epsilon, periods, actions):
     a = getAction(q, s, epsilon, actions)
 
     # get reward
-    r = getReward(df, a)
+    r, ticks = getReward(df, a)
 
     if r:
         # get delta
@@ -220,7 +226,7 @@ def train(df, q, alpha, epsilon, periods, actions):
         # update Q
         q = updateQ(q, s, a, d, r, alpha)
 
-    return q, r, d
+    return q, r, d, ticks
 
 
 def getAction(q, s, epsilon, actions):
