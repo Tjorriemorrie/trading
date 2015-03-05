@@ -51,8 +51,8 @@ def main(debug):
             # print df
             # break
 
-            alpha = 0.01
-            epsilon = alpha * 2.
+            epsilon =0.10
+            alpha = np.sqrt(epsilon)
             q = loadQ(currency, interval)
 
             time_start = time()
@@ -62,7 +62,14 @@ def main(debug):
             rewards = []
             errors = []
             ticks = []
-            logging.warn('Training {0} on {1} with {2} ticks...'.format(currency, interval, len(df)))
+            logging.warn('Training {0} on {1} with {2} ticks [m:{3} a:{4} e:{5}]'.format(
+                currency,
+                interval,
+                len(df),
+                minutes,
+                alpha,
+                epsilon,
+            ))
             while True:
                 epoch += 1
                 logging.info(' ')
