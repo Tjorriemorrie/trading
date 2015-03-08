@@ -9,14 +9,14 @@ from main import loadData, loadQ, saveQ, getBackgroundKnowledge, copyBatch, summ
 
 
 CURRENCIES = {
-    'AUDUSD': 40,
+    'AUDUSD': 60,
     'EURGBP': 50,
-    'EURUSD': 30,
-    'EURJPY': 100,
-    'GBPUSD': 30,
+    'EURUSD': 15,
+    'EURJPY': 150,
+    'GBPUSD': 40,
     'GBPJPY': 150,
     'NZDUSD': 40,
-    'USDCAD': 40,
+    'USDCAD': 60,
     'USDCHF': 40,
     'USDJPY': 30,
 }
@@ -51,8 +51,8 @@ def main(debug):
             # print df
             # break
 
-            alpha = 0.001
-            epsilon = alpha * 2.
+            alpha = 0
+            epsilon = 0
             q = loadQ(currency, interval)
 
             time_start = time()
@@ -69,7 +69,7 @@ def main(debug):
                 logging.info('{0}'.format('=' * 20))
                 logging.info('EPOCH {0}'.format(epoch))
 
-                index_start = randint(0, len(df)-1)
+                index_start = randint(0, len(df)-20)
                 df_inner = df.iloc[index_start:]
                 logging.info('Epoch: at {0} with {1} ticks'.format(index_start, len(df_inner)))
                 q, r, error, tick = train(df_inner, q, alpha, epsilon, PERIODS, actions, pip_mul)
@@ -79,25 +79,29 @@ def main(debug):
                 errors.append(error * pip_mul)
                 ticks.append(tick)
 
-                # prune lengths
-                while len(rewards) > 1000 + minutes * 1000:
-                    rewards.pop(0)
-                    errors.pop(0)
-                    ticks.pop(0)
-
-                # RMSD
-                rmsd = np.sqrt(np.mean([e**2 for e in errors]))
-                logging.info('RMSD: {0}'.format(rmsd))
-
                 # win ratio
                 wins = [1. if r > 0. else 0. for r in rewards]
+                win_ratio = np.mean(wins)
+                # logging.error('wr {0}'.format(win_ratio))
 
                 # adjust values
-                # alpha = inverse_val / 4.
-                # epsilon = alpha / 3.
+                epsilon = np.sqrt((1 - win_ratio) * 100.) / 100.
+                alpha = epsilon / 2.
+                # logging.error('new alpha = {0}'.format(alpha))
 
                 if time() - time_start > time_interval or debug:
-                    logging.warn('{0} [{1:05d}] RMSD {2:03d} PPT {3:03d} WR {5:.0f}% [ticks:{6:.1f} sum:{4:.1f}]'.format(
+
+                    # prune lengths
+                    while len(rewards) > 1000 + minutes * 1000:
+                        rewards.pop(0)
+                        errors.pop(0)
+                        ticks.pop(0)
+
+                    # RMSD
+                    rmsd = np.sqrt(np.mean([e**2 for e in errors]))
+                    logging.info('RMSD: {0}'.format(rmsd))
+
+                    logging.warn('{0} [{1:05d}] RMSD {2:03d} PPT {3:03d} WR {5:.0f}% [ticks:{6:.1f} sum:{4:.1f}, a:{7:.2f}, e:{8:.2f}]'.format(
                         currency,
                         epoch,
                         int(rmsd),
@@ -105,12 +109,16 @@ def main(debug):
                         sum(rewards),
                         np.mean(wins) * 100,
                         np.mean(ticks),
+                        alpha * 100,
+                        epsilon * 100,
                     ))
-                    saveQ(currency, interval, q)
-                    time_interval += seconds_info_intervals
 
-                if (time() - time_start >= seconds_to_run) or debug:
-                    break
+                    # exit
+                    if (time() - time_start >= seconds_to_run) or debug:
+                        break
+
+                    # saveQ(currency, interval, q)
+                    time_interval += seconds_info_intervals
 
             saveQ(currency, interval, q)
 

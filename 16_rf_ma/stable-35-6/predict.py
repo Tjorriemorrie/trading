@@ -15,6 +15,7 @@ def main(debug):
     interval = choice(INTERVALS)
 
     for currency, min_trail in CURRENCIES.iteritems():
+        pip_mul = 100. if 'JPY' in currency else 10000.
         actions = calculateActions(min_trail)
 
         df = loadData(currency, interval)
@@ -30,7 +31,20 @@ def main(debug):
         a = predict(df, q, PERIODS, actions)
 
         row = df_last.iloc[-1]
-        logging.warn('{0} {1} {2}'.format(currency, row.name, a))
+
+        a_trade, a_trail = a.split('-')
+        if a_trade == 'buy':
+            stop_loss = row['close'] - (float(a_trail) / pip_mul)
+        else:
+            stop_loss = row['close'] + (float(a_trail) / pip_mul)
+
+        logging.warn('{0} {1} a:{2} t:{3} sl:{4:.4f}'.format(
+            row.name,
+            currency,
+            a_trade,
+            a_trail,
+            stop_loss,
+        ))
 
 
 

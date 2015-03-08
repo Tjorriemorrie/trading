@@ -11,7 +11,7 @@ import numpy as np
 def loadData(currency, interval):
     logging.info('Data: loading {0} at {1}...'.format(currency, interval))
     df = pd.read_csv(
-        r'{0}/../../data/{1}{2}.csv'.format(os.path.realpath(os.path.dirname(__file__)), currency, interval),
+        r'{0}/../../data/{1}e{2}.csv'.format(os.path.realpath(os.path.dirname(__file__)), currency, interval),
         names=['date', 'time', 'open', 'high', 'low', 'close', 'volume'],
         parse_dates=[[0, 1]],
         index_col=0,
