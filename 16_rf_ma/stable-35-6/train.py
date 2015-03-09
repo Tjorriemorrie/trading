@@ -176,30 +176,29 @@ def getReward(df, a, pip_mul):
     r = 0
     for i, row in df.iterrows():
         ticks += 1
-        current = row['close']
-        logging.debug('Reward: {0} {1} {2:.4f} stop {3:.4f}'.format(a_trade, i, current, take))
+        logging.debug('Reward: {0} {1} {2:.4f} stop {3:.4f}'.format(a_trade, i, row['close'], take))
         # buy
         if a_trade == 'buy':
             # exit?
-            if current < take:
-                logging.debug('Reward: take profit triggered: current [{0:.4f}] < take [{1:.4f}]'.format(current, take))
-                r += current - entry
+            if row['low'] < take:
+                logging.debug('Reward: take profit triggered: low [{0:.4f}] < take [{1:.4f}]'.format(row['low'], take))
+                r += take - entry
                 break
             # new high?
-            if current + trail > take:
-                logging.debug('Reward: new high: current [{0:.4f}] + trail [{1:0.4f}] > take [{2:.4f}]'.format(current, trail, take))
-                take = current + trail
+            if row['high'] + trail > take:
+                logging.debug('Reward: new high: high [{0:.4f}] + trail [{1:0.4f}] > take [{2:.4f}]'.format(row['high'], trail, take))
+                take = row['high'] + trail
         # sell
         if a_trade == 'sell':
             # exit?
-            if current > take:
-                logging.debug('Reward: take profit triggered: current [{0:.4f}] > take [{1:.4f}]'.format(current, take))
+            if row['high'] > take:
+                logging.debug('Reward: take profit triggered: high [{0:.4f}] > take [{1:.4f}]'.format(row['high'], take))
                 r += entry - take
                 break
             # new low?
-            if current + trail < take:
-                logging.debug('Reward: new low: current [{0:.4f}] + trail [{1:0.4f}] < take [{2:.4f}]'.format(current, trail, take))
-                take = current + trail
+            if row['low'] + trail < take:
+                logging.debug('Reward: new low: low [{0:.4f}] + trail [{1:0.4f}] < take [{2:.4f}]'.format(row['low'], trail, take))
+                take = row['low'] + trail
 
     r -= ticks / pip_mul
 
