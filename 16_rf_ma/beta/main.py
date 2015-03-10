@@ -1,9 +1,8 @@
 import logging
 import os
 import pickle
-import tempfile
-import shutil
 import operator
+import gzip
 import pandas as pd
 import numpy as np
 
@@ -11,7 +10,7 @@ import numpy as np
 def loadData(currency, interval):
     logging.info('Data: loading {0} at {1}...'.format(currency, interval))
     df = pd.read_csv(
-        r'{0}/../../data/{1}{2}.csv'.format(os.path.realpath(os.path.dirname(__file__)), currency, interval),
+        r'{0}/../../data/{1}e{2}.csv'.format(os.path.realpath(os.path.dirname(__file__)), currency, interval),
         names=['date', 'time', 'open', 'high', 'low', 'close', 'volume'],
         parse_dates=[[0, 1]],
         index_col=0,
@@ -24,8 +23,9 @@ def loadData(currency, interval):
 def loadQ(currency, interval):
     logging.info('Q: loading...')
     try:
-        with open('{0}/models/{1}_{2}.q'.format(os.path.realpath(os.path.dirname(__file__)), currency, interval), 'rb') as f:
-            q = pickle.load(f)
+        filename = '{0}/models/{1}_{2}.pklz'.format(os.path.realpath(os.path.dirname(__file__)), currency, interval)
+        with gzip.open(filename) as fz:
+            q = pickle.load(fz)
     except (IOError, EOFError) as e:
         logging.error('Could not load Q for {0}'.format(currency))
         q = {}
@@ -35,11 +35,11 @@ def loadQ(currency, interval):
 
 def saveQ(currency, interval, q):
     logging.info('Q: saving...')
-    filename = '{0}/models/{1}_{2}.q'.format(os.path.realpath(os.path.dirname(__file__)), currency, interval)
-    with tempfile.NamedTemporaryFile('wb', dir=os.path.dirname(filename), delete=False) as tf:
-        pickle.dump(q, tf)
-        tempname = tf.name
-        os.rename(tempname, filename)
+    filename_tmp = '{0}/models/tmp.pklz'.format(os.path.realpath(os.path.dirname(__file__)))
+    filename = '{0}/models/{1}_{2}.pklz'.format(os.path.realpath(os.path.dirname(__file__)), currency, interval)
+    with gzip.open(filename_tmp, 'wb') as fz:
+        pickle.dump(q, fz)
+        os.rename(filename_tmp, filename)
     logging.info('Q: saved {0}'.format(len(q)))
 
 
@@ -78,20 +78,11 @@ def getBackgroundKnowledge(df, periods):
     return df
 
 
-def copyBatch():
-    src = '{0}/models'.format(os.path.realpath(os.path.dirname(__file__)))
-    dest = '{0}/batch'.format(os.path.realpath(os.path.dirname(__file__)))
-    src_files = os.listdir(src)
-    for file_name in src_files:
-        full_file_name = os.path.join(src, file_name)
-        if os.path.isfile(full_file_name):
-            shutil.copy(full_file_name, dest)
-
-
 def summarizeActions(q):
     summary_total = {}
     summary_count = {}
-    for (state, action), value in q.iteritems():
+    for key, value in q.iteritems():
+        state, action = key.split('|')
         # total
         action_total = summary_total.get(action, 0)
         action_total += value
@@ -110,7 +101,7 @@ def summarizeActions(q):
 
 def calculateActions(min_trail):
     actions = []
-    for n in xrange(min_trail, min_trail+100, 5):
+    for n in xrange(min_trail, min_trail+50, 5):
         actions.append('buy-{0}'.format(n))
         actions.append('sell-{0}'.format(n))
     return actions

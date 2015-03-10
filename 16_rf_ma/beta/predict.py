@@ -1,21 +1,25 @@
 import logging
 import argparse
 import os
+import pickle
+import pandas as pd
 import numpy as np
+from prettytable import PrettyTable
 from random import random, choice, shuffle, randint
 from pprint import pprint
 from time import time, sleep
-import pickle
-import pandas as pd
-from main import loadData, loadQ, getBackgroundKnowledge, copyBatch, summarizeActions, calculateActions
-from train import CURRENCIES, INTERVALS, PERIODS
-from world import getState, getReward
+from main import loadData, loadQ, getBackgroundKnowledge, summarizeActions, calculateActions
+from world import DATA, PERIODS, getState, getReward
 
 
 def main(debug):
-    interval = choice(INTERVALS)
+    pt = PrettyTable(['Currency', 'min trail', 'date', '1', '2', '3', '4', '5'])
+    for info in DATA:
+        currency = info['currency']
+        min_trail = info['trail']
+        interval = info['intervals'][0]
+        pip_mul = info['pip_mul']
 
-    for currency, min_trail in CURRENCIES.iteritems():
         actions = calculateActions(min_trail)
 
         df = loadData(currency, interval)
@@ -27,26 +31,40 @@ def main(debug):
         q = loadQ(currency, interval)
 
         df_last = df[-1:]
-        a = predict(df, q, PERIODS, actions)
-
         row = df_last.iloc[-1]
-        logging.warn('{0} {1} {2}'.format(currency, row.name, a))
+        predictions = predict(df, q, PERIODS, actions, pip_mul, row)
+
+        # logging.warn('{0} {1} {2}'.format(currency, row.name, a))
+        pt.add_row([currency, min_trail, row.name] + predictions)
+
+    print pt
+
 
 
 ########################################################################################################
 # SARSA
 ########################################################################################################
 
-def predict(df, q, periods, actions):
+def predict(df, q, periods, actions, pip_mul, row):
     logging.info('Predict: started...')
 
     # state
     s = getState(df, periods)
 
-    # initial action
-    a = getAction(q, s, 0, actions)
+    # get top actions
+    predictions = []
+    for n in xrange(5):
+        a, q_sa = getAction(q, s, 0, actions)
+        a_trade, a_trail = a.split('-')
+        if a_trade == 'buy':
+            stop_loss = row['close'] - (float(a_trail) / pip_mul)
+        else:
+            stop_loss = row['close'] + (float(a_trail) / pip_mul)
+        predictions.append('{0} [{1:.4f}] SL:{2:0.4f}'.format(a, q_sa, stop_loss))
+        logging.info('{0} action = {1}'.format(n, a))
+        actions.remove(a)
 
-    return a
+    return predictions
 
 
 def getAction(q, s, epsilon, actions):
@@ -56,43 +74,30 @@ def getAction(q, s, epsilon, actions):
     if random() < epsilon:
         logging.debug('Action: explore (<{0:.2f})'.format(epsilon))
         a = choice(actions)
+        q_max = None
 
     # exploitation
     else:
         logging.debug('Action: exploit (>{0:.2f})'.format(epsilon))
         q_max = None
         for action in actions:
-            q_sa = q.get((tuple(s), action), random() * 10.)
+            q_sa = q.get('|'.join([s, action]), random() * 10.)
             logging.debug('Qsa action {0} is {1:.4f}'.format(action, q_sa))
             if q_sa > q_max:
                 q_max = q_sa
                 a = action
 
     logging.info('Action: found {0}'.format(a))
-    return a
+    return a, q_max
 
 
 def getDelta(q, s, a, r):
     logging.info('Delta: calculating...')
-    q_sa = q.get((tuple(s), a), 0)
+    q_sa = q.get('|'.join([s, a]), 0)
     logging.debug('Delta: r [{0:.4f}] - Qsa [{1:0.4f}]'.format(r, q_sa))
     d = r - q_sa
     logging.info('Delta: {0:.4f}'.format(d))
     return d
-
-
-def updateQ(q, s, a, d, r, alpha):
-    logging.info('Q: updating learning at {0:.2f}...'.format(alpha))
-
-    # update q
-    sa = (tuple(s), a)
-    q_sa = q.get(sa, r)
-    logging.debug('Q: before {0:.4f}'.format(q_sa))
-    q_sa_updated = q_sa + (alpha * d)
-    q[sa] = q_sa_updated
-    logging.debug('Q: after {0:.4f}'.format(q_sa, q_sa_updated))
-
-    return q
 
 
 ########################################################################################################

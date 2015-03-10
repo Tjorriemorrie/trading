@@ -1,6 +1,7 @@
 import logging
 import argparse
 import os
+import operator
 import numpy as np
 from random import random, choice, shuffle, randint
 from pprint import pprint
@@ -8,15 +9,16 @@ from time import time, sleep
 import pickle
 import pandas as pd
 from main import loadData, loadQ, getBackgroundKnowledge, calculateActions
-from train import CURRENCIES, INTERVALS, PERIODS
-from world import getState, getReward
+from world import DATA, PERIODS, getState, getReward
 
 
 def main(debug):
-    interval = choice(INTERVALS)
+    for info in DATA:
+        currency = info['currency']
+        min_trail = info['trail']
+        interval = info['intervals'][0]
+        pip_mul = info['pip_mul']
 
-    for currency, min_trail in CURRENCIES.iteritems():
-        pip_mul = 100. if 'JPY' in currency else 10000.
         actions = calculateActions(min_trail)
 
         df = loadData(currency, interval)
@@ -30,8 +32,8 @@ def main(debug):
         rewards = []
         errors = []
         ticks = []
-        for x in xrange(1000):
-            index_start = randint(0, len(df)-1)
+        for x in xrange(2000):
+            index_start = randint(0, len(df)-20)
             df_inner = df.iloc[index_start:]
             q, r, error, tick = test(df_inner, q, PERIODS, actions, pip_mul)
 
@@ -92,7 +94,7 @@ def getAction(q, s, epsilon, actions):
         logging.debug('Action: exploit (>{0:.2f})'.format(epsilon))
         q_max = None
         for action in actions:
-            q_sa = q.get((tuple(s), action), random() * 10.)
+            q_sa = q.get('|'.join([s, action]), random() * 10.)
             logging.debug('Qsa action {0} is {1:.4f}'.format(action, q_sa))
             if q_sa > q_max:
                 q_max = q_sa
@@ -104,25 +106,11 @@ def getAction(q, s, epsilon, actions):
 
 def getDelta(q, s, a, r):
     logging.info('Delta: calculating...')
-    q_sa = q.get((tuple(s), a), 0)
+    q_sa = q.get('|'.join([s, a]), 0)
     logging.debug('Delta: r [{0:.4f}] - Qsa [{1:0.4f}]'.format(r, q_sa))
     d = r - q_sa
     logging.info('Delta: {0:.4f}'.format(d))
     return d
-
-
-def updateQ(q, s, a, d, r, alpha):
-    logging.info('Q: updating learning at {0:.2f}...'.format(alpha))
-
-    # update q
-    sa = (tuple(s), a)
-    q_sa = q.get(sa, r)
-    logging.debug('Q: before {0:.4f}'.format(q_sa))
-    q_sa_updated = q_sa + (alpha * d)
-    q[sa] = q_sa_updated
-    logging.debug('Q: after {0:.4f}'.format(q_sa, q_sa_updated))
-
-    return q
 
 
 ########################################################################################################

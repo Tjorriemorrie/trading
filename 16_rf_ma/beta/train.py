@@ -5,33 +5,11 @@ from random import random, choice, shuffle, randint
 from pprint import pprint
 from time import time, sleep
 import pandas as pd
-from main import loadData, loadQ, saveQ, getBackgroundKnowledge, copyBatch, summarizeActions, calculateActions
-from world import getState, getReward
-
-
-CURRENCIES = {
-    'AUDUSD': 40,
-    'EURGBP': 50,
-    'EURUSD': 30,
-    'EURJPY': 100,
-    'GBPUSD': 30,
-    'GBPJPY': 150,
-    'NZDUSD': 40,
-    'USDCAD': 40,
-    'USDCHF': 40,
-    'USDJPY': 30,
-}
-
-INTERVALS = [
-    # '60',
-    '1440',
-]
-
-PERIODS = [3, 5, 8, 13, 21]
+from main import loadData, loadQ, saveQ, getBackgroundKnowledge, summarizeActions, calculateActions
+from world import DATA, PERIODS, getState, getReward
 
 
 def main(debug):
-    interval = choice(INTERVALS)
 
     minutes = 0
     while True:
@@ -40,9 +18,13 @@ def main(debug):
         seconds_info_intervals = seconds_to_run / 5
         logging.error('Training each currency for {0} minutes'.format(minutes))
 
-        # shuffle(CURRENCIES)
-        for currency, min_trail in CURRENCIES.iteritems():
-            pip_mul = 100. if 'JPY' in currency else 10000.
+        shuffle(DATA)
+        for info in DATA:
+            currency = info['currency']
+            min_trail = info['trail']
+            interval = info['intervals'][0]
+            pip_mul = info['pip_mul']
+
             actions = calculateActions(min_trail)
 
             df = loadData(currency, interval)
@@ -51,8 +33,8 @@ def main(debug):
             # print df
             # break
 
-            epsilon =0.10
-            alpha = np.sqrt(epsilon)
+            alpha = 0.10
+            epsilon = alpha / 2.
             q = loadQ(currency, interval)
 
             time_start = time()
@@ -62,13 +44,12 @@ def main(debug):
             rewards = []
             errors = []
             ticks = []
-            logging.warn('Training {0} on {1} with {2} ticks [m:{3} a:{4} e:{5}]'.format(
+            logging.warn('Training {0} on {1} with {2} ticks [m:{3} pm:{4:.0f}]'.format(
                 currency,
                 interval,
                 len(df),
                 minutes,
-                alpha,
-                epsilon,
+                pip_mul,
             ))
             while True:
                 epoch += 1
@@ -76,35 +57,41 @@ def main(debug):
                 logging.info('{0}'.format('=' * 20))
                 logging.info('EPOCH {0}'.format(epoch))
 
-                index_start = randint(0, len(df)-1)
+                index_start = randint(0, len(df)-20)
                 df_inner = df.iloc[index_start:]
                 logging.info('Epoch: at {0} with {1} ticks'.format(index_start, len(df_inner)))
                 q, r, error, tick = train(df_inner, q, alpha, epsilon, PERIODS, actions, pip_mul)
 
                 # results
+                error *= pip_mul
                 rewards.append(r)
-                errors.append(error * pip_mul)
+                errors.append(error)
                 ticks.append(tick)
-
-                # prune lengths
-                while len(rewards) > 1000 + minutes * 1000:
-                    rewards.pop(0)
-                    errors.pop(0)
-                    ticks.pop(0)
-
-                # RMSD
-                rmsd = np.sqrt(np.mean([e**2 for e in errors]))
-                logging.info('RMSD: {0}'.format(rmsd))
 
                 # win ratio
                 wins = [1. if r > 0. else 0. for r in rewards]
+                win_ratio = np.mean(wins)
+                # logging.error('wr {0}'.format(win_ratio))
 
                 # adjust values
-                # alpha = inverse_val / 4.
-                # epsilon = alpha / 3.
+                alpha = 1.0102052281586786e+000 + (-2.0307383627607809e+000 * win_ratio) + (1.0215546892913909e+000 * win_ratio**2)
+                epsilon = 3.9851080604500078e-001 + (2.1874724815820201e-002 * win_ratio) + (-4.1444101741886652e-001 * win_ratio**2)
+                # logging.error('new alpha = {0}'.format(alpha))
 
+                # only do updates at interval
                 if time() - time_start > time_interval or debug:
-                    logging.warn('{0} [{1:05d}] RMSD {2:03d} PPT {3:03d} WR {5:.0f}% [ticks:{6:.1f} sum:{4:.1f}]'.format(
+
+                    # prune lengths
+                    while len(rewards) > 1000 + minutes * 1000:
+                        rewards.pop(0)
+                        errors.pop(0)
+                        ticks.pop(0)
+
+                    # RMSD
+                    rmsd = np.sqrt(np.mean([e**2 for e in errors]))
+                    # logging.error('RMSD: {0} from new error {1}'.format(rmsd, error))
+
+                    logging.warn('{0} [{1:05d}] RMSD {2:03d} PPT {3:03d} WR {5:.0f}% [ticks:{6:.1f} sum:{4:.1f}, a:{7:.2f}, e:{8:.2f}]'.format(
                         currency,
                         epoch,
                         int(rmsd),
@@ -112,12 +99,17 @@ def main(debug):
                         sum(rewards),
                         np.mean(wins) * 100,
                         np.mean(ticks),
+                        alpha * 100,
+                        epsilon * 100,
                     ))
-                    saveQ(currency, interval, q)
-                    time_interval += seconds_info_intervals
 
-                if (time() - time_start >= seconds_to_run) or debug:
-                    break
+                    # exit
+                    if time_interval >= seconds_to_run or debug:
+                        break
+
+                    # continue
+                    time_interval += seconds_info_intervals
+                    saveQ(currency, interval, q)
 
             saveQ(currency, interval, q)
 
@@ -128,8 +120,6 @@ def main(debug):
 
         if debug:
             break  # forever
-
-        # copyBatch()
 
 
 ########################################################################################################
@@ -171,7 +161,7 @@ def getAction(q, s, epsilon, actions):
         logging.debug('Action: exploit (>{0:.2f})'.format(epsilon))
         q_max = None
         for action in actions:
-            q_sa = q.get((tuple(s), action), random() * 10.)
+            q_sa = q.get('|'.join([s, action]), random() * 10.)
             logging.debug('Qsa action {0} is {1:.4f}'.format(action, q_sa))
             if q_sa > q_max:
                 q_max = q_sa
@@ -183,9 +173,9 @@ def getAction(q, s, epsilon, actions):
 
 def getDelta(q, s, a, r):
     logging.info('Delta: calculating...')
-    q_sa = q.get((tuple(s), a), 0)
-    logging.debug('Delta: r [{0:.4f}] - Qsa [{1:0.4f}]'.format(r, q_sa))
+    q_sa = q.get('|'.join([s, a]), 0.)
     d = r - q_sa
+    # logging.error('Delta: {2:.4f} <= r [{0:.4f}] - Qsa [{1:0.4f}]'.format(r, q_sa, d))
     logging.info('Delta: {0:.4f}'.format(d))
     return d
 
@@ -194,10 +184,11 @@ def updateQ(q, s, a, d, r, alpha):
     logging.info('Q: updating learning at {0:.2f}...'.format(alpha))
 
     # update q
-    sa = (tuple(s), a)
+    sa = '|'.join([s, a])
     q_sa = q.get(sa, 0)
     logging.debug('Q: before {0:.4f}'.format(q_sa))
     q_sa_updated = q_sa + (alpha * d)
+    # logging.error('Q: {3:.4f} <= qsa [{0:.4f}] + (alpha [{1:0.3f}] * d [{2:.4f}])'.format(q_sa, alpha, d, q_sa_updated))
     q[sa] = q_sa_updated
     logging.debug('Q: after {0:.4f}'.format(q_sa, q_sa_updated))
 
