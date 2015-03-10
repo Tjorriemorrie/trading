@@ -74,8 +74,8 @@ def main(debug):
                 # logging.error('wr {0}'.format(win_ratio))
 
                 # adjust values
-                epsilon = np.sqrt((1 - win_ratio) * 100.) / 100.
-                alpha = epsilon / 2.
+                alpha = 1.0102052281586786e+000 + (-2.0307383627607809e+000 * win_ratio) + (1.0215546892913909e+000 * win_ratio**2)
+                epsilon = alpha
                 # logging.error('new alpha = {0}'.format(alpha))
 
                 # only do updates at interval
@@ -109,7 +109,7 @@ def main(debug):
 
                     # continue
                     time_interval += seconds_info_intervals
-                    # saveQ(currency, interval, q)
+                    saveQ(currency, interval, q)
 
             saveQ(currency, interval, q)
 
@@ -161,7 +161,7 @@ def getAction(q, s, epsilon, actions):
         logging.debug('Action: exploit (>{0:.2f})'.format(epsilon))
         q_max = None
         for action in actions:
-            q_sa = q.get((tuple(s), action), random() * 10.)
+            q_sa = q.get('|'.join([s, action]), random() * 10.)
             logging.debug('Qsa action {0} is {1:.4f}'.format(action, q_sa))
             if q_sa > q_max:
                 q_max = q_sa
@@ -173,7 +173,7 @@ def getAction(q, s, epsilon, actions):
 
 def getDelta(q, s, a, r):
     logging.info('Delta: calculating...')
-    q_sa = q.get((tuple(s), a), 0.)
+    q_sa = q.get('|'.join([s, a]), 0.)
     d = r - q_sa
     # logging.error('Delta: {2:.4f} <= r [{0:.4f}] - Qsa [{1:0.4f}]'.format(r, q_sa, d))
     logging.info('Delta: {0:.4f}'.format(d))
@@ -184,7 +184,7 @@ def updateQ(q, s, a, d, r, alpha):
     logging.info('Q: updating learning at {0:.2f}...'.format(alpha))
 
     # update q
-    sa = (tuple(s), a)
+    sa = '|'.join([s, a])
     q_sa = q.get(sa, 0)
     logging.debug('Q: before {0:.4f}'.format(q_sa))
     q_sa_updated = q_sa + (alpha * d)

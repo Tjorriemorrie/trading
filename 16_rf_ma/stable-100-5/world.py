@@ -24,19 +24,22 @@ def getState(df, periods):
     row = df.iloc[0]
 
     for x in periods:
-        s.append(1 if row['ma_{0}_bullish'.format(x)] else 0)
-        s.append(1 if row['ma_{0}_divergence'.format(x)] else 0)
-        s.append(1 if row['ma_{0}_magnitude'.format(x)] else 0)
+        s.append('1' if row['ma_{0}_bullish'.format(x)] else '0')
+        s.append('1' if row['ma_{0}_divergence'.format(x)] else '0')
+        s.append('1' if row['ma_{0}_magnitude'.format(x)] else '0')
 
         for y in periods:
             if y <= x:
                 continue
-            s.append(1 if row['ma_{0}_crossover_{1}_bullish'.format(x, y)] else 0)
-            s.append(1 if row['ma_{0}_crossover_{1}_divergence'.format(x, y)] else 0)
-            s.append(1 if row['ma_{0}_crossover_{1}_magnitude'.format(x, y)] else 0)
-    logging.debug('State: moving average {0}'.format(s))
+            s.append('1' if row['ma_{0}_crossover_{1}_bullish'.format(x, y)] else '0')
+            s.append('1' if row['ma_{0}_crossover_{1}_divergence'.format(x, y)] else '0')
+            s.append('1' if row['ma_{0}_crossover_{1}_magnitude'.format(x, y)] else '0')
+    # logging.debug('State: moving average {0}'.format(s))
 
-    return s
+    s_string = ''.join(s)
+    logging.debug('State: {0}'.format(s_string))
+
+    return s_string
 
 
 def getReward(df, a, pip_mul):
@@ -47,8 +50,10 @@ def getReward(df, a, pip_mul):
     logging.debug('Reward: entry at {0:.4f}'.format(entry))
     if a_trade == 'buy':
         trail = -(float(a_trailing) / pip_mul)
-    else:
+    elif a_trade == 'sell':
         trail = (float(a_trailing) / pip_mul)
+    else:
+        raise Exception('Unknown trade type {0}'.format(a_trade))
     take = entry + trail
     logging.debug('Reward: trail at {0:.4f}'.format(trail))
 

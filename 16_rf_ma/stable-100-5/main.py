@@ -81,7 +81,8 @@ def getBackgroundKnowledge(df, periods):
 def summarizeActions(q):
     summary_total = {}
     summary_count = {}
-    for (state, action), value in q.iteritems():
+    for key, value in q.iteritems():
+        state, action = key.split('|')
         # total
         action_total = summary_total.get(action, 0)
         action_total += value
