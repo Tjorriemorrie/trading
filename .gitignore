@@ -2,3 +2,4 @@
 .idea/
 *.csv
 !/data/**
+*.py(c|o)

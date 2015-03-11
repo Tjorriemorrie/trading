@@ -12,17 +12,19 @@ from main import loadData, loadQ, getBackgroundKnowledge, summarizeActions, calc
 from world import DATA, PERIODS, getState, getReward
 
 
-def main(debug):
+def main(equity, debug):
+    pips = []
     pt = PrettyTable(['Currency', 'min trail', 'date', '1', '2', '3', '4', '5'])
     for info in DATA:
         currency = info['currency']
         min_trail = info['trail']
         interval = info['intervals'][0]
         pip_mul = info['pip_mul']
+        logging.warn('{0}...'.format(currency))
 
         actions = calculateActions(min_trail)
 
-        df = loadData(currency, interval)
+        df = loadData(currency, interval, 'test')
 
         df = getBackgroundKnowledge(df, PERIODS)
         # print df
@@ -35,9 +37,21 @@ def main(debug):
         predictions = predict(df, q, PERIODS, actions, pip_mul, row)
 
         # logging.warn('{0} {1} {2}'.format(currency, row.name, a))
-        pt.add_row([currency, min_trail, row.name] + predictions)
+        pt.add_row([currency, min_trail, str(row.name).split(' ')[0]] + predictions)
+
+        pips.append(int(predictions[0].split(' ')[0].split('-')[1]))
 
     print pt
+
+    equity = float(equity)
+    risk = 0.10
+    available = equity * risk
+    logging.info('Risk ${0:.0f} from ${1:.0f} at {2:.0f}%'.format(available, equity, risk * 100))
+
+    total_pips = sum(pips)
+    lot_size = available / total_pips
+    lot_size /= len(pips)
+    logging.warn('Lot size = {0:.2f}'.format(lot_size))
 
 
 
@@ -105,6 +119,7 @@ def getDelta(q, s, a, r):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument('equity')
     parser.add_argument('-v', '--verbose', action='store_true')
     parser.add_argument('-vv', '--very_verbose', action='store_true')
     args = parser.parse_args()
@@ -121,4 +136,4 @@ if __name__ == '__main__':
 
     debug = verbose or very_verbose
 
-    main(debug)
+    main(args.equity, debug)

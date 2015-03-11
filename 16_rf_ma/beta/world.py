@@ -3,20 +3,31 @@ import logging
 
 DATA = [
     {'currency': 'AUDUSD', 'trail': 60, 'intervals': [1440], 'pip_mul': 10000},
+
     {'currency': 'EURGBP', 'trail': 50, 'intervals': [1440], 'pip_mul': 10000},
+
     {'currency': 'EURUSD', 'trail': 15, 'intervals': [1440], 'pip_mul': 10000},
+
     {'currency': 'EURJPY', 'trail': 150, 'intervals': [1440], 'pip_mul': 100},
+
     {'currency': 'GBPUSD', 'trail': 40, 'intervals': [1440], 'pip_mul': 10000},
+
     {'currency': 'GBPJPY', 'trail': 150, 'intervals': [1440], 'pip_mul': 100},
-    {'currency': 'NZDUSD', 'trail': 40, 'intervals': [1440], 'pip_mul': 10000},
+
+    {'currency': 'NZDUSD', 'trail': 60, 'intervals': [1440], 'pip_mul': 10000},
+    # 7 mar 40
     # 9 mar 60
+
     {'currency': 'USDCAD', 'trail': 60, 'intervals': [1440], 'pip_mul': 10000},
-    {'currency': 'USDCHF', 'trail': 40, 'intervals': [1440], 'pip_mul': 10000},
+
+    {'currency': 'USDCHF', 'trail': 50, 'intervals': [1440], 'pip_mul': 10000},
+    # 7 mar 40
     # 9 mar 50
+
     {'currency': 'USDJPY', 'trail': 30, 'intervals': [1440], 'pip_mul': 100},
 ]
 
-PERIODS = [3, 5, 8, 13, 21, 34]
+PERIODS = [3, 5, 8, 13, 21, 34, 55]
 
 
 def getState(df, periods):

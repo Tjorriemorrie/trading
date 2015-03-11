@@ -13,6 +13,9 @@ from world import DATA, PERIODS, getState, getReward
 
 
 def main(debug):
+    rmsds = []
+    ppts = []
+    wrs = []
     for info in DATA:
         currency = info['currency']
         min_trail = info['trail']
@@ -21,7 +24,7 @@ def main(debug):
 
         actions = calculateActions(min_trail)
 
-        df = loadData(currency, interval)
+        df = loadData(currency, interval, 'test')
 
         df = getBackgroundKnowledge(df, PERIODS)
         # print df
@@ -32,10 +35,10 @@ def main(debug):
         rewards = []
         errors = []
         ticks = []
-        for x in xrange(2000):
-            index_start = randint(0, len(df)-20)
-            df_inner = df.iloc[index_start:]
+        for i, row in df.iterrows():
+            df_inner = df.loc[i:]
             q, r, error, tick = test(df_inner, q, PERIODS, actions, pip_mul)
+            # logging.warn('{0} {1}'.format(i, r))
 
             # results
             rewards.append(r)
@@ -47,16 +50,28 @@ def main(debug):
 
         # win ratio
         wins = [1. if r > 0. else 0. for r in rewards]
+        win_ratio = np.mean(wins)
+
+        # ppt
+        ppt = np.mean(rewards) * pip_mul
 
         logging.warn('{0} RMSD {2:03d} PPT {3:03d} WR {5:.0f}% [ticks:{6:.1f} sum:{4:.1f}]'.format(
             currency,
             None,
             int(rmsd),
-            int(np.mean(rewards) * pip_mul),
+            int(ppt),
             sum(rewards),
-            np.mean(wins) * 100,
+            win_ratio * 100,
             np.mean(ticks),
         ))
+
+        rmsds.append(rmsd)
+        ppts.append(ppt)
+        wrs.append(win_ratio)
+
+    logging.error('RMSD {0:.0f} +- {1:.0f}'.format(np.mean(rmsds), np.std(rmsds)))
+    logging.error('PPT {0:.0f} +- {1:.0f}'.format(np.mean(ppts), np.std(ppts)))
+    logging.error('WR {0:.0f} +- {1:.0f}'.format(np.mean(wrs) * 100, np.std(wrs) * 100))
 
 
 ########################################################################################################
