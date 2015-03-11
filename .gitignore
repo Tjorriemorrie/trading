@@ -3,3 +3,4 @@
 *.csv
 !/data/**
 *.py(c|o)
+*.pklz
