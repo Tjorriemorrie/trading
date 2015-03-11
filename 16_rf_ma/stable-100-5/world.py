@@ -8,7 +8,7 @@ DATA = [
     {'currency': 'EURJPY', 'trail': 150, 'intervals': [1440], 'pip_mul': 100},
     {'currency': 'GBPUSD', 'trail': 40, 'intervals': [1440], 'pip_mul': 10000},
     {'currency': 'GBPJPY', 'trail': 150, 'intervals': [1440], 'pip_mul': 100},
-    {'currency': 'NZDUSD', 'trail': 40, 'intervals': [1440], 'pip_mul': 10000},
+    {'currency': 'NZDUSD', 'trail': 60, 'intervals': [1440], 'pip_mul': 10000},
     {'currency': 'USDCAD', 'trail': 60, 'intervals': [1440], 'pip_mul': 10000},
     {'currency': 'USDCHF', 'trail': 40, 'intervals': [1440], 'pip_mul': 10000},
     {'currency': 'USDJPY', 'trail': 30, 'intervals': [1440], 'pip_mul': 100},

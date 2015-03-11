@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 
 
-def loadData(currency, interval):
+def loadData(currency, interval, split):
     logging.info('Data: loading {0} at {1}...'.format(currency, interval))
     df = pd.read_csv(
         r'{0}/../../data/{1}e{2}.csv'.format(os.path.realpath(os.path.dirname(__file__)), currency, interval),
@@ -16,7 +16,18 @@ def loadData(currency, interval):
         index_col=0,
     ).astype(float)
     logging.info('Data: {0} rows loaded'.format(len(df)))
-    df = df[-2000:]
+
+    # split
+    if split == 'train':
+        df = df[:int(len(df) * 0.60)]
+    elif split == 'test':
+        df = df[-int(len(df) * 0.40):]
+    else:
+        raise Exception('Unknown split {0}'.format(split))
+
+
+    logging.info('Data: {0} rows used for {1}'.format(len(df), split))
+    # df = df[-2000:]
     return df
 
 

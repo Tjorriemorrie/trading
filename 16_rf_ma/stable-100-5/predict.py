@@ -24,7 +24,7 @@ def main(equity, debug):
 
         actions = calculateActions(min_trail)
 
-        df = loadData(currency, interval)
+        df = loadData(currency, interval, 'test')
 
         df = getBackgroundKnowledge(df, PERIODS)
         # print df
