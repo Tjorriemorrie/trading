@@ -27,7 +27,7 @@ DATA = [
     {'currency': 'USDJPY', 'trail': 30, 'intervals': [1440], 'pip_mul': 100},
 ]
 
-PERIODS = [3, 5, 8, 13, 21, 34, 55]
+PERIODS = [3, 5, 8, 13, 21]
 
 
 def getState(df, periods):
