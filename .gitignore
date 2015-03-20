@@ -5,3 +5,4 @@
 *.py(c|o)
 *.pkl
 *.pklz
+*.thts
