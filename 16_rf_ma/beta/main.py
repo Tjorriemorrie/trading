@@ -112,7 +112,7 @@ def summarizeActions(q):
 
 def calculateActions(min_trail):
     actions = []
-    for n in xrange(min_trail, min_trail+100, 10):
+    for n in xrange(min_trail, min_trail+50, 10):
         actions.append('buy-{0}'.format(n))
         actions.append('sell-{0}'.format(n))
     return actions

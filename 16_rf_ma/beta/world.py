@@ -27,7 +27,7 @@ DATA = [
     {'currency': 'USDJPY', 'trail': 30, 'intervals': [1440], 'pip_mul': 100},
 ]
 
-PERIODS = [3, 5, 8, 13, 21]
+PERIODS = [5, 21]
 
 
 def getState(df, periods):
@@ -98,6 +98,6 @@ def getReward(df, a, pip_mul):
                 logging.debug('Reward: new low: low [{0:.4f}] + trail [{1:0.4f}] < take [{2:.4f}]'.format(row['low'], trail, take))
                 take = row['low'] + trail
 
-    r -= ticks / pip_mul
+    r -= (ticks * 2) / pip_mul
 
     return r, ticks

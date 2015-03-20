@@ -25,7 +25,6 @@ def loadData(currency, interval, split):
     else:
         raise Exception('Unknown split {0}'.format(split))
 
-
     logging.info('Data: {0} rows used for {1}'.format(len(df), split))
     # df = df[-2000:]
     return df
