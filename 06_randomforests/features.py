@@ -354,9 +354,9 @@ class FeatureFactory():
         X_train = sk.preprocessing.scale(X_train)
         X_test = sk.preprocessing.scale(X_test)
 
-        print 'X-train: ' + str(X_train.shape)
-        print 'y-train: ' + str(y_train.shape)
-        print 'X-test: ' + str(X_test.shape)
-        print 'y-test: ' + str(y_test.shape)
+        # print 'X-train: ' + str(X_train.shape)
+        # print 'y-train: ' + str(y_train.shape)
+        # print 'X-test: ' + str(X_test.shape)
+        # print 'y-test: ' + str(y_test.shape)
 
         return [X_train, X_test, y_train, y_test]

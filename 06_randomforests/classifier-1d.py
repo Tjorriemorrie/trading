@@ -31,6 +31,9 @@ for currency in currencies:
     )
     data = df.as_matrix()
 
+    # train on first 60%
+    data = data[:int(len(data) * 0.60)]
+
     opens = data[:, 2].astype(float)
     highs = data[:, 3].astype(float)
     lows = data[:, 4].astype(float)
@@ -47,29 +50,15 @@ for currency in currencies:
     print 'calculating rewards...'
     rewards = ff.getRewards(closes)
 
-    # train split
-    # print '\nsplitting training set'
-    X_train, X_test, y_train, y_test = ff.getSplit(X_scaled, rewards, 0)
-
     # fitting regressor
     # rfc = RandomForestClassifier(n_estimators=30)
     rfc = ExtraTreesClassifier(
-        n_estimators=30,
+        # n_estimators=30,
         # max_features='sqrt'
     )
 
-    # scores
-    scores = cross_val_score(
-        estimator=rfc,
-        X=X_test,
-        y=y_test,
-        verbose=0,
-        cv=2,
-    )
-    print("Accuracy: %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))
-
     # predict
-    rfc.fit(X_train, y_train)
+    rfc.fit(X_scaled, rewards)
     # y_predict = rfc.predict(X_train)
 
     # saving

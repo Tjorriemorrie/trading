@@ -29,6 +29,10 @@ for currency in currencies:
         names=['date', 'time', 'open', 'high', 'low', 'close', 'volume'],
     )
     data = df.as_matrix()
+
+    # train on first 60%
+    data = data[-int(len(data) * 0.40):]
+
     opens = data[:, 2].astype(float)
     highs = data[:, 3].astype(float)
     lows = data[:, 4].astype(float)
@@ -45,16 +49,11 @@ for currency in currencies:
     # print '\ncalculating rewards...'
     rewards = ff.getRewards(closes)
 
-    # train split
-    # print '\nsplitting training set'
-    X_train, X_test, y_train, y_test = ff.getSplit(X_scaled, rewards)
-
     # simulate
     action = 'none'
     trades = []
-    close = closes[len(X_train)]
-    for i, x in enumerate(X_test):
-        pos = i + len(X_train)
+    for i, x in enumerate(X_scaled):
+        pos = i
 
         # actual (what happened tomorrow)
         reward = rewards[pos]
