@@ -25,7 +25,6 @@ def loadData(currency, interval, split):
     else:
         raise Exception('Unknown split {0}'.format(split))
 
-
     logging.info('Data: {0} rows used for {1}'.format(len(df), split))
     # df = df[-2000:]
     return df
@@ -108,11 +107,3 @@ def summarizeActions(q):
 
     for action, info in summary_sorted:
         logging.error('{0:10s} after {2} states with {1:.4f} avg'.format(action, info, summary_count[action]))
-
-
-def calculateActions(min_trail):
-    actions = []
-    for n in xrange(min_trail, min_trail+100, 10):
-        actions.append('buy-{0}'.format(n))
-        actions.append('sell-{0}'.format(n))
-    return actions

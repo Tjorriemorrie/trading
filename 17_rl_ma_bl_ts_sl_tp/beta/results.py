@@ -1,15 +1,10 @@
 import logging
 import argparse
-import os
-import operator
 import numpy as np
-from random import random, choice, shuffle, randint
+from random import random, choice
 from pprint import pprint
-from time import time, sleep
-import pickle
-import pandas as pd
-from main import loadData, loadQ, getBackgroundKnowledge, calculateActions
-from world import DATA, PERIODS, getState, getReward
+from main import loadData, loadQ, getBackgroundKnowledge
+from world import DATA, PERIODS, ACTIONS, getState, getReward
 
 
 def main(debug):
@@ -22,13 +17,9 @@ def main(debug):
         interval = info['intervals'][0]
         pip_mul = info['pip_mul']
 
-        actions = calculateActions(min_trail)
-
         df = loadData(currency, interval, 'test')
 
         df = getBackgroundKnowledge(df, PERIODS)
-        # print df
-        # break
 
         q = loadQ(currency, interval)
 
@@ -37,7 +28,7 @@ def main(debug):
         ticks = []
         for i, row in df.iterrows():
             df_inner = df.loc[i:]
-            q, r, error, tick = test(df_inner, q, PERIODS, actions, pip_mul)
+            q, r, error, tick = test(df_inner, q, PERIODS, ACTIONS, pip_mul, info['std'])
             # logging.warn('{0} {1}'.format(i, r))
 
             # results
@@ -78,7 +69,7 @@ def main(debug):
 # SARSA
 ########################################################################################################
 
-def test(df, q, periods, actions, pip_mul):
+def test(df, q, periods, actions, pip_mul, std):
     logging.info('Testing: started...')
 
     # initial state
@@ -88,7 +79,7 @@ def test(df, q, periods, actions, pip_mul):
     a = getAction(q, s, 0, actions)
 
     # get reward
-    r, ticks = getReward(df, a, pip_mul)
+    r, ticks = getReward(df, a, pip_mul, std)
 
     # get delta
     d = getDelta(q, s, a, r)

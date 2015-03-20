@@ -1,12 +1,13 @@
 import logging
 import numpy as np
 import argparse
-from random import random, choice, shuffle, randint
-from pprint import pprint
-from time import time, sleep
 import pandas as pd
-from main import loadData, loadQ, saveQ, getBackgroundKnowledge, summarizeActions, calculateActions
-from world import DATA, PERIODS, getState, getReward
+from time import time
+from pprint import pprint
+from random import random, choice, shuffle, randint
+
+from main import loadData, loadQ, saveQ, getBackgroundKnowledge, summarizeActions
+from world import DATA, PERIODS, ACTIONS, getState, getReward
 
 
 def main(debug):
@@ -20,20 +21,16 @@ def main(debug):
 
         shuffle(DATA)
         for info in DATA:
+            logging.debug('Currency info: {0}'.format(info))
             currency = info['currency']
-            min_trail = info['trail']
             interval = info['intervals'][0]
             pip_mul = info['pip_mul']
-
-            actions = calculateActions(min_trail)
 
             df = loadData(currency, interval, 'train')
 
             df = getBackgroundKnowledge(df, PERIODS)
-            # print df
-            # break
 
-            alpha = 0.10
+            alpha = 0.
             epsilon = alpha / 2.
             q = loadQ(currency, interval)
 
@@ -44,13 +41,13 @@ def main(debug):
             rewards = []
             errors = []
             ticks = []
-            logging.warn('Training {0} on {1} with {2} ticks [m:{3} pm:{4:.0f}]'.format(
+            logging.warn('Training {0} on {1} with {2} ticks [m:{3}]'.format(
                 currency,
                 interval,
                 len(df),
                 minutes,
-                pip_mul,
             ))
+
             while True:
                 epoch += 1
                 logging.info(' ')
@@ -60,7 +57,7 @@ def main(debug):
                 index_start = randint(0, len(df)-20)
                 df_inner = df.iloc[index_start:]
                 logging.info('Epoch: at {0} with {1} ticks'.format(index_start, len(df_inner)))
-                q, r, error, tick = train(df_inner, q, alpha, epsilon, PERIODS, actions, pip_mul)
+                q, r, error, tick = train(df_inner, q, alpha, epsilon, PERIODS, ACTIONS, pip_mul, info['std'])
 
                 # results
                 error *= pip_mul
@@ -126,7 +123,7 @@ def main(debug):
 # SARSA
 ########################################################################################################
 
-def train(df, q, alpha, epsilon, periods, actions, pip_mul):
+def train(df, q, alpha, epsilon, periods, actions, pip_mul, std):
     logging.info('Training: started...')
     d = None
 
@@ -137,7 +134,7 @@ def train(df, q, alpha, epsilon, periods, actions, pip_mul):
     a = getAction(q, s, epsilon, actions)
 
     # get reward
-    r, ticks = getReward(df, a, pip_mul)
+    r, ticks = getReward(df, a, pip_mul, std)
 
     # get delta
     d = getDelta(q, s, a, r)
