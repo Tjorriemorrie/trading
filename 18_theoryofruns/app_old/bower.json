@@ -1,0 +1,14 @@
+{
+  "name": "trading",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "bootstrap": "~3.3.1",
+    "less": "~2.1.1"
+  }
+}

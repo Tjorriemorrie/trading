@@ -1,0 +1,115 @@
+{% extends '/templates/base.html' %}
+
+{% block content %}
+	<div class="row">
+
+		{#  new movies	#}
+		<div class="col-md-6">
+			<h4 class="text-center">New movies</h4>
+			<table class="table table-condensed">
+				<thead>
+					<tr>
+						<th>&nbsp;</th>
+						<th>Rating</th>
+						<th>Title</th>
+						<th>Date</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for movie in movies %}
+						<tr class="{{ 'downloaded' if movie.is_downloaded() else '' }}">
+							<td class="download">
+								<a href="#download" data-magnet="{{ movie.magnet }}" data-key="{{ movie.key.urlsafe() }}">
+									<span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+								</a>
+							</td>
+							<td>{{ movie.rating }}%</td>
+							<td><a href="http://thepiratebay.se{{ movie.url }}" target="_blank">{{ movie.title_rating }}</a></td>
+							<td>{{ movie.uploaded_time_ago() }}</td>
+						</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+
+			{#	new series	#}
+			<h4 class="text-center">New series</h4>
+			<table class="table table-condensed">
+				<thead>
+					<tr>
+						<th>&nbsp;</th>
+						<th>Season</th>
+						<th>Title</th>
+						<th>Date</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for series in series_new %}
+						<tr class="{{ 'downloaded' if series.is_downloaded() else '' }}">
+							<td class="download">
+								<a href="#download" data-magnet="{{ series.magnet }}" data-key="{{ series.key.urlsafe() }}">
+									<span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+								</a>
+								<small class="text-muted">{{ '{0:>6d}'.format(series.seeders + series.leechers) }}</small>
+								<small class="text-muted">{{ '{0}'.format(series.size_humanize()) }}</small>
+							</td>
+							<td class="text-center">
+								{{ series.series_season }}
+							</td>
+							<td>
+								<a href="http://thepiratebay.se{{ series.url }}" target="_blank">{{ series.series_title }}</a>
+								<small class="text-muted">{{ '{0}'.format(series.uploader) }}</small>
+							</td>
+							<td>
+								{{ series.uploaded_time_ago() }}
+							</td>
+						</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+
+		</div>
+		<div class="col-md-6">
+
+			{#	new episodes	#}
+			<h4 class="text-center">New episodes</h4>
+			<table class="table table-condensed">
+				<thead>
+					<tr>
+						<th>&nbsp;</th>
+						<th>Episode</th>
+						<th>Uploader</th>
+						<th>Size</th>
+						<th>Date</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for series_watch in series_watching %}
+						<tr>
+							<td colspan="5"><h4>{{ series_watch }}</h4></td>
+						</tr>
+						{% for episode in episodes_new if episode.series_title == series_watch %}
+							<tr class="{{ 'downloaded' if episode.is_downloaded() else '' }}">
+								<td class="download">
+									<a href="#download" data-magnet="{{ episode.magnet }}" data-key="{{ episode.key.urlsafe() }}">
+										<span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+									</a>
+									<small class="text-muted">{{ '{0:>6d}'.format(episode.seeders + episode.leechers) }}</small>
+								</td>
+								<td>
+									<a href="http://thepiratebay.se{{ episode.url }}" target="_blank">
+										{{ 'S{0:02d}'.format(episode.series_season) if episode.series_season else '' }}
+										{{ 'E{0:02d}'.format(episode.series_episode) if episode.series_episode else '' }}
+									</a>
+								</td>
+								<td><a href="http://thepiratebay.se{{ episode.url }}" target="_blank">{{ episode.uploader }}</a></td>
+								<td>{{ '{0}'.format(episode.size_humanize()) }}</td>
+								<td>{{ episode.uploaded_time_ago() }}</td>
+							</tr>
+						{% endfor %}
+					{% endfor %}
+				</tbody>
+			</table>
+
+		</div>
+	</div>
+{% endblock %}

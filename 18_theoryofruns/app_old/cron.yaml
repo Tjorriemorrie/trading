@@ -1,0 +1,6 @@
+cron:
+#- description: scrape tpb
+#  url: /scrape/tpb
+#  schedule: every day 14:00
+#  schedule: every 10 minutes synchronized
+#  schedule: every 6 hours from 00:00 to 23:00

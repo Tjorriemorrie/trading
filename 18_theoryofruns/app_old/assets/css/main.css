@@ -1,0 +1,39 @@
+.row-icon {
+  height: 1.4em;
+  width: auto;
+}
+table a {
+  color: black;
+}
+.downloaded {
+  color: green;
+}
+.downloaded a {
+  color: green;
+}
+.slider.well {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-around;
+  align-items: stretch;
+}
+.slider.well .slider.movie {
+  background: blue;
+}
+.rating {
+  float: right;
+  background: none repeat scroll 0 0 #64BC64;
+  padding: 0.1em 0.4em;
+  color: #eee;
+  font-size: 0.8em;
+  margin-right: 1em;
+}
+.thumbnail {
+  position: relative;
+}
+.thumbnail .rating {
+  position: absolute;
+  top: 1em;
+  left: 1em;
+  font-size: 1em;
+}

@@ -1,0 +1,44 @@
+{% extends '/templates/base.html' %}
+
+{% block content %}
+<div class="lead">
+	{{ torrents[0]['category_name']|upper }}
+	<small class="text-muted">{{ torrents|count }}</small>
+</div>
+
+<table class="table table-bordered">
+<thead>
+	<tr>
+		<th>&nbsp;</th>
+		<th>Title</th>
+		<th>Uploaded At</th>
+		<th>Size</th>
+		<th>Seeders</th>
+		<th>Leechers</th>
+		<th>Uploader</th>
+	</tr>
+</thead>
+<tbody>
+	{% for torrent in torrents %}
+		<tr class="{{ 'downloaded' if torrent.is_downloaded() else '' }}">
+			<td class="download">
+				<a href="#download" data-magnet="{{ torrent.magnet }}" data-key="{{ torrent.key.urlsafe() }}">
+					<span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+				</a>
+			</td>
+			<td>
+				{% if torrent.rating %}
+					<span class="pull-right"><strong>{{ torrent.rating }}%</strong></span>
+				{% endif %}
+				<a href="http://thepiratebay.se{{ torrent.url }}" target="_blank">{{ torrent.title }}</a>
+			</td>
+			<td>{{ torrent.uploaded_time_ago() }}</td>
+			<td>{{ torrent.size_humanize() }}</td>
+			<td>{{ torrent.seeders }}</td>
+			<td>{{ torrent.leechers }}</td>
+			<td>{{ torrent.uploader }}</td>
+		</tr>
+	{% endfor %}
+</tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,19 @@
+<nav class="navbar navbar-default" role="navigation">
+	<div class="container">
+
+		<div class="navbar-header">
+			<a class="navbar-brand" href="/">The Pirate Bay GUI</a>
+		</div>
+
+		<ul class="nav navbar-nav">
+			{% for group in groups %}
+				{% for category in group.categories %}
+					<li class="{{ 'active' if cat == category['code'] else '' }}">
+						<a href="{{ uri_for('category', cat=category['code']) }}">{{ category['name'] }}</a>
+					</li>
+				{% endfor %}
+			{% endfor %}
+		</ul>
+
+	</div>
+</nav>

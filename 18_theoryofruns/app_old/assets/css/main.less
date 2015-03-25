@@ -1,0 +1,52 @@
+body, html {
+//  margin-top: 3em;
+}
+
+.row-icon {
+  height: 1.4em;
+  width: auto;
+}
+
+table {
+  a {
+    color: black;
+  }
+}
+
+.downloaded {
+  color: green;
+  a {
+    color: green;
+  }
+}
+
+.slider.well {
+  display: flex;
+//  flex-direction: row;
+//  flex-wrap: wrap;
+  flex-flow: row nowrap;
+  justify-content: space-around;
+  align-items: stretch;
+  .slider.movie {
+    background: blue;
+  }
+}
+
+.rating {
+  float: right;
+  background: none repeat scroll 0 0 #64BC64;
+  padding: 0.1em 0.4em;
+  color: #eee;
+  font-size: 0.8em;
+  margin-right: 1em;
+}
+
+.thumbnail {
+  position: relative;
+  .rating {
+    position: absolute;
+    top: 1em;
+    left: 1em;
+    font-size: 1em;
+  }
+}

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{% block title %}TPB GUI{% endblock %}</title>
+
+    {% block css %}
+        <link href="/vendor/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link href="/vendor/bootstrap/dist/css/bootstrap-theme.min.css" rel="stylesheet">
+        <link href="/assets/css/main.css" rel="stylesheet"/>
+    {% endblock %}
+</head>
+
+<body>
+
+	{% include '/templates/nav.html' %}
+
+	<div class="container">
+		{% block content %}
+		{% endblock %}
+	</div>
+
+
+	{% block js %}
+	    <script src="/vendor/jquery/dist/jquery.min.js"></script>
+	    <script src="/vendor/bootstrap/dist/js/bootstrap.min.js"></script>
+		<script src="/assets/js/download.js"></script>
+	{% endblock %}
+
+</body>
+</html>

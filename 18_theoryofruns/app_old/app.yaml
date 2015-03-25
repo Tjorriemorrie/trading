@@ -1,0 +1,43 @@
+application: trading
+version: tpb
+runtime: python27
+api_version: 1
+threadsafe: yes
+default_expiration: "0s"
+
+builtins:
+- remote_api: off
+
+inbound_services:
+- warmup
+
+libraries:
+- name: webapp2
+  version: 2.5.2
+- name: jinja2
+  version: 2.6
+- name: ssl
+  version: 2.7
+
+handlers:
+- url: /vendor
+  static_dir: vendor
+
+- url: /assets
+  static_dir: assets
+
+- url: /scrape/.*
+  script: src.app.wsgi
+  login: admin
+
+- url: /.*
+  login: required
+  script: src.app.wsgi
+
+skip_files:
+- ^(.*/)?#.*#$
+- ^(.*/)?.*~$
+- ^(.*/)?.*\.py[co]$
+- ^(.*/)?.*/RCS/.*$
+- ^(.*/)?\..*$
+- ^/.idea/.*$
