@@ -30,7 +30,12 @@ class Run(ndb.Model):
 
     step = ndb.IntegerProperty()
     payout = ndb.FloatProperty()
+    probability = ndb.FloatProperty()
+
     stake = ndb.FloatProperty()
+    stake_parent = ndb.FloatProperty(default=0.)
+    stake_net = ndb.FloatProperty()
+
     profit = ndb.FloatProperty()
     profit_parent = ndb.FloatProperty(default=0.)
     profit_net = ndb.FloatProperty()

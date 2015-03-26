@@ -8,7 +8,7 @@ from pprint import pprint
 
 
 class Binary():
-    def __init__(self):
+    def __init__(self, auto_login):
         urlfetch.set_default_fetch_deadline(60)
         self.opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(CookieJar()))
         self.opener.addheaders = [
@@ -20,7 +20,8 @@ class Binary():
         self.url_purchase = 'https://vr-deal01.binary.com/c/trade.cgi'
         self.username = 'VRTC609286'
         self.password = 'binary2com'
-        self.login()
+        if auto_login:
+            self.login()
 
 
     def login(self):
@@ -96,15 +97,17 @@ class Binary():
 
             # update payout if martingale
             if run.step > 1:
-                profit_required = abs(run.profit_parent) + (1 / run.step)
+                profit_required = abs(run.profit_parent) + (1 / float(run.step))
 
                 # calculate correct payout with probabilities
-                run.payout = profit_required / (1 - item['payload']['prob'])
+                run.payout = round(profit_required / (1 - item['payload']['prob']), 2)
                 log.info('Payout updated to {0:.2f} for required profit of {1:.2f}'.format(run.payout, profit_required))
 
                 # get price with updated payout
                 prices = self.getPrices(run)
                 item = self.filterTradeFromPrices(run, prices)
+
+            run.probability = item['payload']['prob']
 
             # create request
             req = urllib2.Request(item['url'], data=urllib.urlencode(item['payload']))

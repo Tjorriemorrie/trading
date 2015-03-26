@@ -45,7 +45,7 @@ class RL():
 
         data = q.data
         s = '_'.join([run.currency, run.time_frame, run.trade_base, run.trade_aim])
-        r = run.profit_net / run.stake
+        r = run.profit_net / run.stake_net
 
         # get delta
         q_sa = data.get(s, 0.)
