@@ -13,7 +13,6 @@ class Main():
 
     def __init__(self, auto_login=True):
         log.info('Main init started')
-        self.epsilon = 0.05
         self.binary = Binary(auto_login)
         self.rl = RL()
         self.loadQ()
@@ -22,10 +21,23 @@ class Main():
 
     def loadQ(self):
         log.info('Q loading...')
+
         q_key = ndb.Key(Q, 'main')
         self.q = q_key.get()
         if not self.q:
-            self.q = Q(key=q_key, data={})
+            self.q = Q(key=q_key)
+
+        # validate properties
+        if not self.q.data:
+            self.q.data = {}
+        if not self.q.visits:
+            self.q.visits = {}
+            runs = Run.query().fetch()
+            for run in runs:
+                if run.getState() not in self.q.visits:
+                    self.q.visits[run.getState()] = 0
+                self.q.visits[run.getState()] += 1
+
         log.info('Q loaded {0}'.format(len(self.q.data)))
 
 
@@ -39,7 +51,7 @@ class Main():
         '''Create new iteration'''
         log.info('Main new started')
 
-        currency, time_frame, trade_base, trade_aim = self.rl.selectNew(self.q.data, self.epsilon)
+        currency, time_frame, trade_base, trade_aim = self.rl.selectNew(self.q)
         run_key = ndb.Key('Run', str(dt.datetime.utcnow()))
         run = Run(
             key=run_key,
@@ -79,7 +91,7 @@ class Main():
                     continue
 
                 # wait for result
-                profit_table_update_delay = dt.timedelta(seconds=10)
+                profit_table_update_delay = dt.timedelta(seconds=15)
                 to_sleep = max(0, int((run.ended_at - dt.datetime.utcnow() + profit_table_update_delay).total_seconds()))
                 if to_sleep > 0:
                     log.info('Run: waiting for {0} seconds'.format(to_sleep))

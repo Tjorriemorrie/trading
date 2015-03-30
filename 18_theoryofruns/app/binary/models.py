@@ -3,7 +3,8 @@ from google.appengine.ext import ndb
 
 CURRENCIES = ['EURUSD']
 
-TIME_FRAMES = ['5', '10', '15']
+TIME_FRAMES = ['5', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55', '60']
+# TIME_FRAMES = ['1']
 
 TRADE_BASES = ['payout', 'directional']
 
@@ -12,6 +13,7 @@ TRADE_AIMS = ['higher', 'lower']
 
 class Q(ndb.Model):
     data = ndb.PickleProperty(compressed=False)
+    visits = ndb.PickleProperty(compressed=False)
     updated_at = ndb.DateTimeProperty(auto_now=True)
     created_at = ndb.DateTimeProperty(auto_now_add=True)
 
@@ -43,3 +45,6 @@ class Run(ndb.Model):
     ended_at = ndb.DateTimeProperty()
     updated_at = ndb.DateTimeProperty(auto_now=True)
     created_at = ndb.DateTimeProperty(auto_now_add=True)
+
+    def getState(self):
+        return '_'.join([self.currency, self.time_frame, self.trade_base, self.trade_aim])

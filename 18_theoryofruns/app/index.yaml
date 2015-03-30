@@ -13,5 +13,11 @@ indexes:
 - kind: Run
   properties:
   - name: is_finished
+  - name: ended_at
+    direction: desc
+
+- kind: Run
+  properties:
+  - name: is_finished
   - name: is_win
   - name: ended_at

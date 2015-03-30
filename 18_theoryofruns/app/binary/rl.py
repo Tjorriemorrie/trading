@@ -7,11 +7,13 @@ class RL():
 
     def __init__(self):
         self.alpha = 0.10
+        self.epsilon = 0.50
+        self.k = 10
         log.info('RL alpha = {0:.0f}'.format(self.alpha * 100))
 
 
-    def selectNew(self, q, epsilon):
-        log.info('RL action selecting with epsilon {0}'.format(epsilon))
+    def selectNew(self, q):
+        log.info('RL action selecting with exploration function of {0}...'.format(self.k))
 
         # get all possible states
         states = []
@@ -22,21 +24,18 @@ class RL():
                         states.append('_'.join([currency, time_frame, trade_base, trade_aim]))
         log.info('States possible {0}'.format(len(states)))
 
-        # exploration
-        if random.random < epsilon:
-            state = random.choice(states)
-            log.info('State exploration {0}'.format(state))
-        # exploitation
-        else:
-            state = None
-            max_val = 0
-            for s in states:
-                val = q.get(state, random.random() * 10)
-                if val > max_val:
-                    state = s
-                    max_val = val
-            log.info('State exploitation {0}'.format(state))
+        state = None
+        max_val = 0
+        for s in states:
+            q_val = q.data.get(s, random.random() * self.k)
+            e_val = self.k / float(max(1, q.visits.get(s, 0)))
+            val = q_val + e_val
+            log.info('S q:{0:.2f} + e{1:.2f} = v{2:.2f} for s{3}'.format(q_val, e_val, val, s))
+            if val > max_val:
+                state = s
+                max_val = val
 
+        log.info('State selected {0}'.format(state))
         return state.split('_')
 
 
@@ -46,6 +45,7 @@ class RL():
         data = q.data
         s = '_'.join([run.currency, run.time_frame, run.trade_base, run.trade_aim])
         r = run.profit_net / run.stake_net
+        log.info('Q updating: received {0} reward for state {1}'.format(r, s))
 
         # get delta
         q_sa = data.get(s, 0.)
@@ -59,4 +59,10 @@ class RL():
         data[s] = q_sa_updated
         log.info('Q updated to {0:.2f}'.format(data[s]))
         q.data = data
+
+        # update visits
+        n = q.visits.get(s, 0)
+        q.visits[s] = n + 1
+        log.info('Q visits updated to {0}'.format(q.visits[s]))
+
         return q

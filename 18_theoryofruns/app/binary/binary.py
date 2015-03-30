@@ -1,6 +1,7 @@
 import json
 import logging as log
 import urllib, urllib2
+from httplib import HTTPException
 from cookielib import CookieJar
 from bs4 import BeautifulSoup
 from google.appengine.api import urlfetch
@@ -31,10 +32,17 @@ class Binary():
             'password': self.password,
         }
         data_encoded = urllib.urlencode(formdata)
-        response = self.opener.open(self.url_login, data_encoded)
-        log.info('Binary auth response {0}'.format(response.getcode()))
-        if '<span class="clientid">VRTC609286</span>' not in response.read():
-            raise Exception('Could not log into Binary.com')
+        for _ in range(5):
+            try:
+                response = self.opener.open(self.url_login, data_encoded)
+                log.info('Binary auth response {0}'.format(response.getcode()))
+                if '<span class="clientid">VRTC609286</span>' not in response.read():
+                    raise Exception('Could not log into Binary.com')
+                break
+            except HTTPException as e:
+                log.warn('Could not log in...')
+        else:
+            raise e
         log.info('Binary logged in')
 
 
