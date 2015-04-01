@@ -97,23 +97,21 @@ class Binary():
     def createNew(self, run):
         log.info('Binary trade creating...')
 
+        run.setProfitRequired()
+
         for _ in xrange(5):
 
             # get prices
             prices = self.getPrices(run)
             item = self.filterTradeFromPrices(run, prices)
 
-            # update payout if martingale
-            if run.step > 1:
-                profit_required = abs(run.profit_parent) + (1 / float(run.step))
+            # calculate correct payout with probabilities
+            run.payout = round(run.profit_req / (1 - item['payload']['prob']), 2)
+            log.info('Payout updated to {0:.2f} for required profit of {1:.2f}'.format(run.payout, run.profit_req))
 
-                # calculate correct payout with probabilities
-                run.payout = round(profit_required / (1 - item['payload']['prob']), 2)
-                log.info('Payout updated to {0:.2f} for required profit of {1:.2f}'.format(run.payout, profit_required))
-
-                # get price with updated payout
-                prices = self.getPrices(run)
-                item = self.filterTradeFromPrices(run, prices)
+            # get price with updated payout
+            prices = self.getPrices(run)
+            item = self.filterTradeFromPrices(run, prices)
 
             run.probability = item['payload']['prob']
 
@@ -159,10 +157,10 @@ class Binary():
             'ajax_only': 1,
             'price_only': 1,
         }
-        payload['underlying_symbol'] = 'frx{0}'.format('EURUSD')
-        payload['st'] = 'frx{0}'.format('EURUSD')
-        payload['duration_amount'] = run.time_frame
-        payload['expiry'] = '{0}m'.format(run.time_frame)
+        payload['underlying_symbol'] = 'frx{0}'.format(run.currency)
+        payload['st'] = 'frx{0}'.format(run.currency)
+        payload['duration_amount'] = 3
+        payload['expiry'] = '{0}m'.format(3)
         payload['amount'] = run.payout
         log.info('Params: {0}'.format(payload))
 

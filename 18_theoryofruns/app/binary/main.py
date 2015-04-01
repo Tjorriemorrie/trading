@@ -16,6 +16,7 @@ class Main():
         self.binary = Binary(auto_login)
         self.rl = RL()
         self.loadQ()
+        self.profit_target = 1.
         log.info('Main init ended')
 
 
@@ -32,7 +33,7 @@ class Main():
             self.q.data = {}
         if not self.q.visits:
             self.q.visits = {}
-            runs = Run.query().fetch()
+            runs = Run.query(Run.is_win == True).fetch()
             for run in runs:
                 if run.getState() not in self.q.visits:
                     self.q.visits[run.getState()] = 0
@@ -51,20 +52,16 @@ class Main():
         '''Create new iteration'''
         log.info('Main new started')
 
-        currency, time_frame, trade_base, trade_aim = self.rl.selectNew(self.q)
-        run_key = ndb.Key('Run', str(dt.datetime.utcnow()))
+        currency, trade_base, trade_aim = self.rl.selectNew(self.q)
         run = Run(
-            key=run_key,
             currency=currency,
-            time_frame=time_frame,
             trade_base=trade_base,
             trade_aim=trade_aim,
-            step=1,
-            payout=1.,
-            ended_at=dt.datetime.utcnow() + dt.timedelta(minutes=int(time_frame)),
+            ended_at=dt.datetime.utcnow() + dt.timedelta(minutes=3),
         )
 
         if self.binary.createNew(run):
+            run.key = ndb.Key(Run, run.binary_ref)
             run.put()
             log.info('New run: {0}'.format(run))
 
@@ -85,8 +82,8 @@ class Main():
             for run in runs:
                 log.info('Run: finding profit for {0}'.format(run.binary_ref))
 
-                # time frame ending?
-                if run.ended_at > dt.datetime.utcnow() + dt.timedelta(seconds=60):
+                # skip (finding result) if ending more than x time in the future
+                if run.ended_at > dt.datetime.utcnow() + dt.timedelta(seconds=30):
                     log.info('Run: skipping till {0}'.format(run.ended_at))
                     continue
 
@@ -95,26 +92,21 @@ class Main():
                 to_sleep = max(0, int((run.ended_at - dt.datetime.utcnow() + profit_table_update_delay).total_seconds()))
                 if to_sleep > 0:
                     log.info('Run: waiting for {0} seconds'.format(to_sleep))
-                    time.sleep(to_sleep + 5)
+                    time.sleep(to_sleep)
                     log.info('Run: refreshing profit table...')
                     profit_table = self.binary.getProfitTable()
 
                 # get result
                 if run.binary_ref in profit_table:
-                    parent_stake = run.stake_parent if run.stake_parent else 0.
-                    run.profit = profit_table[run.binary_ref]
-                    run.profit_net = run.profit + run.profit_parent
-                    run.stake_net = run.stake + parent_stake
-                    run.is_win = True if run.profit > 0 else False
-                    run.is_finished = True
+                    run.updateResult(profit_table[run.binary_ref])
                     run.put()
                     log.info('Run: finished with profit {0:.2f}'.format(run.profit))
 
                     # continue to cancel loss?
-                    if not run.is_win:
+                    if not run.is_completed:
                         run_child = self.martingale(run)
+                    # update q
                     else:
-                        # update q
                         self.q = self.rl.updateQ(self.q, run)
                 else:
                     log.error('{0} has no profit/loss in table'.format(run.binary_ref))
@@ -126,25 +118,24 @@ class Main():
         log.info('Martingale: loss for {0}'.format(run_parent.binary_ref))
 
         # a child is born
-        run_child_key = ndb.Key('Run', str(dt.datetime.utcnow()))
         run_child = Run(
-            key=run_child_key,
             currency=run_parent.currency,
-            time_frame=run_parent.time_frame,
             trade_base=run_parent.trade_base,
             trade_aim=run_parent.trade_aim,
 
             parent_run=run_parent.key,
+            is_win_parent=run_parent.is_win,
             profit_parent=run_parent.profit_net,
-            stake_parent=run_parent.stake,
+            stake_parent=run_parent.stake_net,
+            profit_req_parent=run_parent.profit_req,
 
             step=run_parent.step + 1,
-            payout=run_parent.payout * 2,
-            ended_at=dt.datetime.utcnow() + dt.timedelta(minutes=int(run_parent.time_frame)),
+            ended_at=dt.datetime.utcnow() + dt.timedelta(minutes=3),
         )
 
         # a child is registered
         if self.binary.createNew(run_child):
+            run_child.key = ndb.Key(Run, run_child.binary_ref)
             run_child.put()
             log.info('New martingale run: {0}'.format(run_child))
 
@@ -173,7 +164,7 @@ class Main():
         stakes = 0.
         runs_size = len(runs) + 0.
 
-        fields = ['binary_ref', 'time_frame', 'trade_base', 'trade_aim', 'step', 'profit_parent', 'stake_parent', 'stake', 'probability', 'payout', 'profit_net']
+        fields = ['binary_ref', 'trade_base', 'trade_aim', 'step', 'profit_parent', 'stake_parent', 'stake', 'probability', 'payout', 'profit_net']
         # table header
         table = '<table width=100%" border="1"><thead><tr>'
         for field in fields:

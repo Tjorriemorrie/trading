@@ -1,5 +1,5 @@
 import logging as log
-from models import CURRENCIES, TIME_FRAMES, TRADE_BASES, TRADE_AIMS
+from models import CURRENCIES, TRADE_BASES, TRADE_AIMS
 import random
 
 
@@ -7,9 +7,9 @@ class RL():
 
     def __init__(self):
         self.alpha = 0.10
-        self.epsilon = 0.50
-        self.k = 10
         log.info('RL alpha = {0:.0f}'.format(self.alpha * 100))
+        self.k = 1.
+        log.info('RL k = {0:.0f}'.format(self.k))
 
 
     def selectNew(self, q):
@@ -18,10 +18,9 @@ class RL():
         # get all possible states
         states = []
         for currency in CURRENCIES:
-            for time_frame in TIME_FRAMES:
-                for trade_base in TRADE_BASES:
-                    for trade_aim in TRADE_AIMS:
-                        states.append('_'.join([currency, time_frame, trade_base, trade_aim]))
+            for trade_base in TRADE_BASES:
+                for trade_aim in TRADE_AIMS:
+                    states.append('_'.join([currency, trade_base, trade_aim]))
         log.info('States possible {0}'.format(len(states)))
 
         state = None
@@ -43,7 +42,7 @@ class RL():
         log.info('Q updating...')
 
         data = q.data
-        s = '_'.join([run.currency, run.time_frame, run.trade_base, run.trade_aim])
+        s = '_'.join([run.currency, run.trade_base, run.trade_aim])
         r = run.profit_net / run.stake_net
         log.info('Q updating: received {0} reward for state {1}'.format(r, s))
 

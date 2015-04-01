@@ -2,7 +2,7 @@ import logging as log
 from google.appengine.ext import ndb
 from models import Run, Q
 from pprint import pprint
-from models import CURRENCIES, TIME_FRAMES, TRADE_BASES, TRADE_AIMS
+from models import CURRENCIES, TRADE_BASES, TRADE_AIMS
 
 
 class Stats():

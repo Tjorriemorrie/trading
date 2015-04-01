@@ -1,7 +1,7 @@
 cron:
-- description: run binary trading
-  url: /cron/run
-  schedule: every 5 minutes synchronized
+#- description: run binary trading
+#  url: /cron/run
+#  schedule: every 3 minutes synchronized
 
 - description: email results
   url: /cron/notify
