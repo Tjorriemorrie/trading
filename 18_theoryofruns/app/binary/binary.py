@@ -85,7 +85,7 @@ class Binary():
             # log.info('{0} divs in row'.format(len(divs)))
             ref = divs[0].find_all('div')[1].text
             # log.info('{0}'.format(ref))
-            profit_loss = float(divs[2].find_all('div')[-1].text.strip())
+            profit_loss = float(divs[2].find_all('div')[-1].text.replace(',', '').strip())
             # log.info('payout div {0}'.format(divs[2]))
             # log.info('Ref {0} profit/loss {1}'.format(ref, profit_loss))
             profit_table[ref] = profit_loss

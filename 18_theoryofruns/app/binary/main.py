@@ -173,7 +173,7 @@ class Main():
         stakes = 0.
         runs_size = len(runs) + 0.
 
-        fields = ['binary_ref', 'time_frame', 'trade_base', 'trade_aim', 'step', 'profit_parent', 'stake', 'probability', 'payout', 'profit_net']
+        fields = ['binary_ref', 'time_frame', 'trade_base', 'trade_aim', 'step', 'profit_parent', 'stake_parent', 'stake', 'probability', 'payout', 'profit_net']
         # table header
         table = '<table width=100%" border="1"><thead><tr>'
         for field in fields:

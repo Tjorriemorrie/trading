@@ -19,10 +19,10 @@ class Q(ndb.Model):
 
 
 class Run(ndb.Model):
-    currency = ndb.StringProperty(choices=CURRENCIES)
-    time_frame = ndb.StringProperty(choices=TIME_FRAMES)
-    trade_base = ndb.StringProperty(choices=TRADE_BASES)
-    trade_aim = ndb.StringProperty(choices=TRADE_AIMS)
+    currency = ndb.StringProperty()
+    time_frame = ndb.StringProperty()
+    trade_base = ndb.StringProperty()
+    trade_aim = ndb.StringProperty()
 
     is_finished = ndb.BooleanProperty(default=False)
     is_win = ndb.BooleanProperty()
