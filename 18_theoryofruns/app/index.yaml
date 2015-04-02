@@ -21,3 +21,8 @@ indexes:
   - name: is_finished
   - name: is_win
   - name: ended_at
+
+- kind: Run
+  properties:
+  - name: is_completed
+  - name: ended_at

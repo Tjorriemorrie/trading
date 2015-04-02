@@ -52,6 +52,13 @@ class Main():
         '''Create new iteration'''
         log.info('Main new started')
 
+        # prevent too many running at the same time
+        runs_unfinished = Run.query(Run.is_finished == False).count()
+        log.info('{0} runs active'.format(runs_unfinished))
+        if runs_unfinished >= 10:
+            log.warn('Too many runs active, not creating new')
+            return
+
         currency, trade_base, trade_aim = self.rl.selectNew(self.q)
         run = Run(
             currency=currency,
@@ -80,6 +87,7 @@ class Main():
 
             # continue every run
             for run in runs:
+                log.info(' - ' * 20)
                 log.info('Run: finding profit for {0}'.format(run.binary_ref))
 
                 # skip (finding result) if ending more than x time in the future
@@ -98,24 +106,32 @@ class Main():
 
                 # get result
                 if run.binary_ref in profit_table:
-                    run.updateResult(profit_table[run.binary_ref])
-                    run.put()
-                    log.info('Run: finished with profit {0:.2f}'.format(run.profit))
-
-                    # continue to cancel loss?
-                    if not run.is_completed:
-                        run_child = self.martingale(run)
-                    # update q
-                    else:
-                        self.q = self.rl.updateQ(self.q, run)
+                    result_profit = profit_table[run.binary_ref]
+                    log.info('Run {0}: finished with profit {1}'.format(run.binary_ref, result_profit))
                 else:
-                    log.error('{0} has no profit/loss in table'.format(run.binary_ref))
+                    log.warn('{0} has no profit/loss in table'.format(run.binary_ref))
+                    if run.ended_at > dt.datetime.utcnow() + dt.timedelta(minutes=-15):
+                        log.info('Skipping for next run')
+                        continue
+                    else:
+                        log.error('Run too old {0}'.format(run.ended_at))
+                        result_profit = -run.stake
+
+                # update result with profit and act accordingly
+                run.updateResult(result_profit)
+                run.put()
+                # continue to cancel loss?
+                if not run.is_completed:
+                    run_child = self.martingale(run)
+                # update q
+                else:
+                    self.q = self.rl.updateQ(self.q, run)
 
         log.info('Main existing ended')
 
 
     def martingale(self, run_parent):
-        log.info('Martingale: loss for {0}'.format(run_parent.binary_ref))
+        log.info('Martingale: continuing for {0}'.format(run_parent.binary_ref))
 
         # a child is born
         run_child = Run(
@@ -124,7 +140,6 @@ class Main():
             trade_aim=run_parent.trade_aim,
 
             parent_run=run_parent.key,
-            is_win_parent=run_parent.is_win,
             profit_parent=run_parent.profit_net,
             stake_parent=run_parent.stake_net,
             profit_req_parent=run_parent.profit_req,
@@ -152,7 +167,7 @@ class Main():
 
         started_at = dt.datetime.utcnow() + dt.timedelta(hours=-1)
         ended_at = dt.datetime.utcnow()
-        runs = Run.query(Run.ended_at >= started_at, Run.ended_at <= ended_at, Run.is_finished == True, Run.is_win == True).fetch()
+        runs = Run.query(Run.ended_at >= started_at, Run.ended_at <= ended_at, Run.is_completed == True).fetch()
         log.info('Fetched {0} runs from {1} till {2}'.format(len(runs), started_at, ended_at))
 
         # exit if nothing
@@ -164,15 +179,21 @@ class Main():
         stakes = 0.
         runs_size = len(runs) + 0.
 
-        fields = ['binary_ref', 'trade_base', 'trade_aim', 'step', 'profit_parent', 'stake_parent', 'stake', 'probability', 'payout', 'profit_net']
-        # table header
-        table = '<table width=100%" border="1"><thead><tr>'
-        for field in fields:
-            table += '<th>{0}</th>'.format(field)
-        table += '</tr></thead>'
-        # table body
-        table += '<tbody>'
+        html = ''
+        fields = [
+            'step', 'profit_parent',
+            'probability', 'profit_req', 'payout', 'stake',
+            'is_win', 'profit', 'profit_net',
+        ]
         for run in runs:
+            # table header
+            table = '<p>{0}: {1} {2}'.format(run.binary_ref, run.trade_base, run.trade_aim)
+            table += '<table width=100%" border="1"><thead><tr>'
+            for field in fields:
+                table += '<th>{0}</th>'.format(field)
+            table += '</tr></thead>'
+            # table body
+            table += '<tbody>'
             # update results
             net_profit += run.profit_net
             stakes += run.stake
@@ -188,15 +209,16 @@ class Main():
                 run = run.parent_run.get()
                 stakes += run.stake
 
-                row = '<tr><td>&nbsp;</td>'
-                for field in fields[1:-1]:
+                row = '<tr>'
+                for field in fields[:-1]:
                     row += '<td>{0}</td>'.format(getattr(run, field))
                 row += '<td>&nbsp;</td></tr>'
                 log.info('Row: {0}'.format(row))
                 table += row
 
-        table += '</tbody></table>'
-        # pprint(table)
+            table += '</tbody></table>'
+            # pprint(table)
+            html += table
 
         subject = '[{0:.2f}] {1} runs totalling {2:.2f} profit with {3:.2f} stakes'.format(
             net_profit / stakes,
@@ -212,9 +234,9 @@ class Main():
             to='jacoj82@gmail.com',
         )
 
-        msg.body = table
+        msg.body = html
 
-        msg.html = '<html><body>' + table + '</body></html>'
+        msg.html = '<html><body>' + html + '</body></html>'
 
         msg.send()
 

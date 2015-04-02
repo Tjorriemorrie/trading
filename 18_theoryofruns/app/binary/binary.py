@@ -107,7 +107,7 @@ class Binary():
 
             # calculate correct payout with probabilities
             run.payout = round(run.profit_req / (1 - item['payload']['prob']), 2)
-            log.info('Payout updated to {0:.2f} for required profit of {1:.2f}'.format(run.payout, run.profit_req))
+            log.info('Payout updated to {0:.2f} for required profit of {1:.2f} with prob of {2:.2f}'.format(run.payout, run.profit_req, item['payload']['prob']))
 
             # get price with updated payout
             prices = self.getPrices(run)
@@ -162,7 +162,7 @@ class Binary():
         payload['duration_amount'] = 3
         payload['expiry'] = '{0}m'.format(3)
         payload['amount'] = run.payout
-        log.info('Params: {0}'.format(payload))
+        # log.debug('Params: {0}'.format(payload))
 
         data_encoded = urllib.urlencode(payload)
         res = self.opener.open(self.url_prices, data_encoded)
@@ -182,7 +182,7 @@ class Binary():
             for input in form.find_all('input'):
                 val = input['value'] if input['name'] not in ['payout', 'price', 'prob', 'opposite_prob'] else float(input['value'])
                 item['payload'][input['name']] = val
-            log.info('Binary prices form {0}'.format(item))
+            # log.debug('Binary prices form {0}'.format(item))
             data.append(item)
 
         log.info('Binary {0} prices retrieved'.format(len(data)))

@@ -27,7 +27,6 @@ class Run(ndb.Model):
     is_finished = ndb.BooleanProperty(default=False)
     # for easy analysis
     is_win = ndb.BooleanProperty()
-    is_win_parent = ndb.BooleanProperty()
     # is martingale run completed (not specified by win anymore due to anti-M)
     is_completed = ndb.BooleanProperty(default=False)
 
@@ -59,23 +58,18 @@ class Run(ndb.Model):
         self.is_finished = True
         self.is_win = True if self.profit > 0 else False
         self.is_completed = True if self.profit_net > 0 else False
-        log.info('Run result: completed {0}'.format(self.is_completed))
+        log.info('Run result: completed {0} with net profit of {1:.2f}'.format(self.is_completed, self.profit_net))
 
     def setProfitRequired(self, profit_target=1.):
         log.info('Profit req: target = {0}'.format(profit_target))
         profit_req = profit_target
         # modify profit req to handle losses
-        if self.step > 1 and self.is_win_parent:
-            log.info('Profit req: step {0} and parent won'.format(self.step))
-            # use profit req from parent otherwise calculate it over sqrt req
-            if self.profit_req_parent != profit_target:
-                profit_req = self.profit_req_parent
-                log.info('Profit req: parent profit != profit_req; thus using {0}'.format(profit_req))
-            else:
-                profit_req += abs(self.profit_parent)
-                iterations_req = round(math.sqrt(profit_req), 0)
-                log.info('Profit req: {0:.0f} iterations req for profit req of {1:.2f}'.format(iterations_req, profit_req))
-                profit_req = profit_req / iterations_req
+        if self.step > 1:
+            log.info('Profit req: step {0} with running net of {1:.2f}'.format(self.step, self.profit_parent))
+            profit_req += abs(self.profit_parent)
+            iterations_req = max(1., round(math.log(profit_req), 0))
+            log.info('Profit req: {0:.0f} iterations req for profit req of {1:.2f}'.format(iterations_req, profit_req))
+            profit_req = max(profit_target, profit_req / iterations_req)
         self.profit_req = profit_req
         log.info('Profit req: final {0:.2f}'.format(self.profit_req))
 
