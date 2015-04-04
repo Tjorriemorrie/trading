@@ -67,11 +67,14 @@ class Run(ndb.Model):
         if self.step > 1:
             log.info('Profit req: step {0} with running net of {1:.2f}'.format(self.step, self.profit_parent))
             profit_req += abs(self.profit_parent)
-            iterations_req = max(1., round(math.log(profit_req), 0))
+            iterations_req = max(1., round(math.log(profit_req / profit_target), 0))
             log.info('Profit req: {0:.0f} iterations req for profit req of {1:.2f}'.format(iterations_req, profit_req))
             profit_req = max(profit_target, profit_req / iterations_req)
         self.profit_req = profit_req
         log.info('Profit req: final {0:.2f}'.format(self.profit_req))
+
+    def getRoi(self):
+        return self.profit_net / self.stake_net
 
     def getState(self):
         return '_'.join([self.currency, self.trade_base, self.trade_aim])

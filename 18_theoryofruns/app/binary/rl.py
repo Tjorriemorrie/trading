@@ -8,7 +8,7 @@ class RL():
     def __init__(self):
         self.alpha = 0.01
         log.info('RL alpha = {0:.0f}'.format(self.alpha * 100))
-        self.k = 1.
+        self.k = 10.
         log.info('RL k = {0:.0f}'.format(self.k))
 
 
@@ -24,7 +24,7 @@ class RL():
         log.info('States possible {0}'.format(len(states)))
 
         state = None
-        max_val = 0
+        max_val = -9999
         for s in states:
             q_val = q.data.get(s, random.random() * self.k)
             e_val = self.k / float(max(1, q.visits.get(s, 0)))
@@ -43,7 +43,7 @@ class RL():
 
         data = q.data
         s = '_'.join([run.currency, run.trade_base, run.trade_aim])
-        r = run.profit_net / run.stake_net
+        r = run.getRoi()
         log.info('Q updating: received {0} reward for state {1}'.format(r, s))
 
         # get delta

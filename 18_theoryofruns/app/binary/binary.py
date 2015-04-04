@@ -16,7 +16,7 @@ class Binary():
             ('User-Agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.9; rv:36.0) Gecko/20100101 Firefox/36.0')]
         self.url_login = 'https://www.binary.com/login?l=EN'
         self.url_statement = 'https://www.binary.com/user/statement?l=EN'
-        self.url_profit_table = 'https://www.binary.com/d/profit_table.cgi?l=EN'
+        self.url_profit_table = 'https://www.binary.com/user/profit_table?l=EN'
         self.url_prices = 'https://www.binary.com/d/trade_price.cgi'
         self.url_purchase = 'https://vr-deal01.binary.com/c/trade.cgi'
         self.username = 'VRTC609286'
@@ -71,7 +71,7 @@ class Binary():
 
 
     def getProfitTable(self):
-        log.info('Binary: profit table retrieving...')
+        log.info('Binary: profit table retrieving from {0}...'.format(self.url_profit_table))
 
         response = self.opener.open(self.url_profit_table)
         html = BeautifulSoup(response.read())
@@ -94,7 +94,7 @@ class Binary():
         return profit_table
 
 
-    def createNew(self, run):
+    def createNew(self, run, interval):
         log.info('Binary trade creating...')
 
         run.setProfitRequired()
@@ -102,7 +102,7 @@ class Binary():
         for _ in xrange(5):
 
             # get prices
-            prices = self.getPrices(run)
+            prices = self.getPrices(run, interval)
             item = self.filterTradeFromPrices(run, prices)
 
             # calculate correct payout with probabilities
@@ -110,7 +110,7 @@ class Binary():
             log.info('Payout updated to {0:.2f} for required profit of {1:.2f} with prob of {2:.2f}'.format(run.payout, run.profit_req, item['payload']['prob']))
 
             # get price with updated payout
-            prices = self.getPrices(run)
+            prices = self.getPrices(run, interval)
             item = self.filterTradeFromPrices(run, prices)
 
             run.probability = item['payload']['prob']
@@ -121,8 +121,12 @@ class Binary():
             # submit
             res = self.purchaseTrade(req)
             if not res['success']:
-                log.info('Create purchase try {0} failed'.format(_))
-                continue
+                log.warn('Create purchase try {0} failed'.format(_))
+                # check market closed
+                if 'This market is presently closed' in res['error']:
+                    return False
+                else:
+                    continue
 
             # finished
             run.binary_ref = res['ref']
@@ -133,7 +137,7 @@ class Binary():
         return False
 
 
-    def getPrices(self, run):
+    def getPrices(self, run, interval):
         log.info('Binary prices retrieving...')
         payload = {
             'l': 'EN',
@@ -159,10 +163,10 @@ class Binary():
         }
         payload['underlying_symbol'] = 'frx{0}'.format(run.currency)
         payload['st'] = 'frx{0}'.format(run.currency)
-        payload['duration_amount'] = 3
-        payload['expiry'] = '{0}m'.format(3)
+        payload['duration_amount'] = interval
+        payload['expiry'] = '{0}m'.format(interval)
         payload['amount'] = run.payout
-        # log.debug('Params: {0}'.format(payload))
+        log.debug('Params: {0}'.format(payload))
 
         data_encoded = urllib.urlencode(payload)
         res = self.opener.open(self.url_prices, data_encoded)
@@ -182,7 +186,7 @@ class Binary():
             for input in form.find_all('input'):
                 val = input['value'] if input['name'] not in ['payout', 'price', 'prob', 'opposite_prob'] else float(input['value'])
                 item['payload'][input['name']] = val
-            # log.debug('Binary prices form {0}'.format(item))
+            log.debug('Binary prices form {0}'.format(item))
             data.append(item)
 
         log.info('Binary {0} prices retrieved'.format(len(data)))

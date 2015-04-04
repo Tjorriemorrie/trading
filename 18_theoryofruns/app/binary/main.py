@@ -13,6 +13,7 @@ class Main():
 
     def __init__(self, auto_login=True):
         log.info('Main init started')
+        self.interval = 10
         self.binary = Binary(auto_login)
         self.rl = RL()
         self.loadQ()
@@ -55,7 +56,7 @@ class Main():
         # prevent too many running at the same time
         runs_unfinished = Run.query(Run.is_finished == False).count()
         log.info('{0} runs active'.format(runs_unfinished))
-        if runs_unfinished >= 10:
+        if runs_unfinished > 15:
             log.warn('Too many runs active, not creating new')
             return
 
@@ -64,10 +65,10 @@ class Main():
             currency=currency,
             trade_base=trade_base,
             trade_aim=trade_aim,
-            ended_at=dt.datetime.utcnow() + dt.timedelta(minutes=3),
+            ended_at=dt.datetime.utcnow() + dt.timedelta(minutes=self.interval),
         )
 
-        if self.binary.createNew(run):
+        if self.binary.createNew(run, self.interval):
             run.key = ndb.Key(Run, run.binary_ref)
             run.put()
             log.info('New run: {0}'.format(run))
@@ -110,7 +111,7 @@ class Main():
                     log.info('Run {0}: finished with profit {1}'.format(run.binary_ref, result_profit))
                 else:
                     log.warn('{0} has no profit/loss in table'.format(run.binary_ref))
-                    if run.ended_at > dt.datetime.utcnow() + dt.timedelta(minutes=-15):
+                    if run.ended_at > dt.datetime.utcnow() + dt.timedelta(minutes=-(self.interval * 3)):
                         log.info('Skipping for next run')
                         continue
                     else:
@@ -119,13 +120,16 @@ class Main():
 
                 # update result with profit and act accordingly
                 run.updateResult(result_profit)
-                run.put()
-                # continue to cancel loss?
-                if not run.is_completed:
-                    run_child = self.martingale(run)
                 # update q
+                self.q = self.rl.updateQ(self.q, run)
+                # continue to cancel loss?
+                if run.is_completed:
+                    run.put()
                 else:
-                    self.q = self.rl.updateQ(self.q, run)
+                    if self.martingale(run):
+                        # only now save parent result
+                        run.put()
+
 
         log.info('Main existing ended')
 
@@ -145,17 +149,18 @@ class Main():
             profit_req_parent=run_parent.profit_req,
 
             step=run_parent.step + 1,
-            ended_at=dt.datetime.utcnow() + dt.timedelta(minutes=3),
+            ended_at=dt.datetime.utcnow() + dt.timedelta(minutes=self.interval),
         )
 
         # a child is registered
-        if self.binary.createNew(run_child):
+        if self.binary.createNew(run_child, self.interval):
             run_child.key = ndb.Key(Run, run_child.binary_ref)
             run_child.put()
-            log.info('New martingale run: {0}'.format(run_child))
+            log.info('New martingale run created: {0}'.format(run_child))
+            return True
 
-        log.info('Martingale: created new run')
-        return run_child
+        log.info('Martingale: created new run failed')
+        return False
 
 
     def notifyMe(self):
@@ -181,7 +186,7 @@ class Main():
 
         html = ''
         fields = [
-            'step', 'profit_parent',
+            'step', 'ended_at', 'profit_parent',
             'probability', 'profit_req', 'payout', 'stake',
             'is_win', 'profit', 'profit_net',
         ]

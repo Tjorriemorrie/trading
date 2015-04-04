@@ -35,12 +35,12 @@ def notify(request):
     log.info('Request Notifying me')
 
     # check if weekday is 1..5
-    today = datetime.utcnow()
-    if today.isoweekday() not in range(1, 6):
-        log.info('Weekend: no trading')
-    else:
-        main = Main(False)
-        main.notifyMe()
+    # today = datetime.utcnow()
+    # if today.isoweekday() not in range(1, 6):
+    #     log.info('Weekend: no trading')
+    # else:
+    main = Main(False)
+    main.notifyMe()
 
     log.info('Request Me notified')
     return http.HttpResponse()

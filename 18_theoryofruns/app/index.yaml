@@ -12,6 +12,11 @@ indexes:
 
 - kind: Run
   properties:
+  - name: is_completed
+  - name: ended_at
+
+- kind: Run
+  properties:
   - name: is_finished
   - name: ended_at
     direction: desc
@@ -24,5 +29,6 @@ indexes:
 
 - kind: Run
   properties:
-  - name: is_completed
-  - name: ended_at
+  - name: is_finished
+  - name: step
+    direction: desc
