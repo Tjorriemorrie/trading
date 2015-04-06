@@ -8,7 +8,7 @@ class RL():
     def __init__(self):
         self.alpha = 0.01
         log.info('RL alpha = {0:.0f}'.format(self.alpha * 100))
-        self.k = 10.
+        self.k = 1.
         log.info('RL k = {0:.0f}'.format(self.k))
 
 
@@ -29,7 +29,7 @@ class RL():
             q_val = q.data.get(s, random.random() * self.k)
             e_val = self.k / float(max(1, q.visits.get(s, 0)))
             val = q_val + e_val
-            log.info('S q:{0:.2f} + e{1:.2f} = v{2:.2f} for s{3}'.format(q_val, e_val, val, s))
+            log.info('S q:{0:.3f} + e{1:.3f} = v{2:.3f} for s{3}'.format(q_val, e_val, val, s))
             if val > max_val:
                 state = s
                 max_val = val

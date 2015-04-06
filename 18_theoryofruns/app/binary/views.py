@@ -17,15 +17,15 @@ def run(request):
     log.info('Run started')
 
     # check if weekday is 1..5
-    today = datetime.utcnow()
-    if today.isoweekday() not in range(1, 6):
-        log.info('Weekend: no trading')
-    else:
+    # today = datetime.utcnow()
+    # if today.isoweekday() not in range(1, 6):
+    #     log.info('Weekend: no trading')
+    # else:
         # start trading
-        main = Main()
-        main.new()
-        main.existing()
-        main.saveQ()
+    main = Main()
+    main.new()
+    main.existing()
+    main.saveQ()
 
     log.info('Run ended')
     return http.HttpResponse()

@@ -131,6 +131,7 @@ class Binary():
             # finished
             run.binary_ref = res['ref']
             run.stake = res['stake']
+            run.balance = res['balance']
             return True
 
         log.info('Binary trade creation failed')
@@ -141,7 +142,7 @@ class Binary():
         log.info('Binary prices retrieving...')
         payload = {
             'l': 'EN',
-            'submarket': 'major_pairs',
+            'submarket': 'random_daily',
             'date_start': 'now',
             'expiry_type': 'duration',
             'duration_units': 'm',
@@ -151,7 +152,7 @@ class Binary():
             'amount_type': 'payout',
             'currency': 'USD',
             'barrier_type': 'relative',
-            'market': 'forex',
+            'market': 'random',
             'showohlc': 'yes',
             'controller_action': 'price_box',
             'form_name': 'risefall',
@@ -161,12 +162,12 @@ class Binary():
             'ajax_only': 1,
             'price_only': 1,
         }
-        payload['underlying_symbol'] = 'frx{0}'.format(run.currency)
-        payload['st'] = 'frx{0}'.format(run.currency)
+        payload['underlying_symbol'] = '{0}'.format(run.currency)
         payload['duration_amount'] = interval
-        payload['expiry'] = '{0}m'.format(interval)
         payload['amount'] = run.payout
-        log.debug('Params: {0}'.format(payload))
+        payload['st'] = '{0}'.format(run.currency)
+        payload['expiry'] = '{0}m'.format(interval)
+        # log.debug('Params: {0}'.format(payload))
 
         data_encoded = urllib.urlencode(payload)
         res = self.opener.open(self.url_prices, data_encoded)
@@ -186,7 +187,7 @@ class Binary():
             for input in form.find_all('input'):
                 val = input['value'] if input['name'] not in ['payout', 'price', 'prob', 'opposite_prob'] else float(input['value'])
                 item['payload'][input['name']] = val
-            log.debug('Binary prices form {0}'.format(item))
+            # log.debug('Binary prices form {0}'.format(item))
             data.append(item)
 
         log.info('Binary {0} prices retrieved'.format(len(data)))
@@ -211,9 +212,11 @@ class Binary():
         ref = res['trade_ref']
         html = BeautifulSoup(res['display'])
         stake = float(html.find('span', id='contract-outcome-buyprice').text)
+        balance_str = html.find('div', class_='account_balance').text.strip()
+        balance = float(balance_str.replace(',', '').split(' ')[-1])
 
-        log.info('Binary trade purchased {0} with stake {1:.2f}'.format(ref, stake))
-        return {'success': True, 'ref': ref, 'stake': stake}
+        log.info('Binary trade purchased {0} with stake {1:.2f} (balance at {2:.2f})'.format(ref, stake, balance))
+        return {'success': True, 'ref': ref, 'stake': stake, 'balance': balance}
 
 
     def filterTradeFromPrices(self, run, prices):
