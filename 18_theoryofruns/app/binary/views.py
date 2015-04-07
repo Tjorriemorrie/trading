@@ -53,3 +53,14 @@ def delete(request):
     ndb.delete_multi(runs_keys)
     log.info('Deleted runs')
     return http.HttpResponse()
+
+
+def closeAll(request):
+    log.info('Request close all')
+    from models import Run
+    runs_unfinished = Run.query(Run.is_finished == False).fetch()
+    for run in runs_unfinished:
+        run.is_finished = True
+        run.put()
+        log.info('Run {0} set to finished'.format(run.binary_ref))
+    return http.HttpResponse()

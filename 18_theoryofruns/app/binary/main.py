@@ -88,7 +88,7 @@ class Main():
 
             # continue every run
             for run in runs:
-                log.info(' - ' * 20)
+                log.info(' -- ' * 30)
                 log.info('Run: finding profit for {0}'.format(run.binary_ref))
 
                 # skip (finding result) if ending more than x time in the future
@@ -172,17 +172,19 @@ class Main():
 
         started_at = dt.datetime.utcnow() + dt.timedelta(hours=-1)
         ended_at = dt.datetime.utcnow()
-        runs = Run.query(Run.ended_at >= started_at, Run.ended_at <= ended_at, Run.is_completed == True).fetch()
-        log.info('Fetched {0} runs from {1} till {2}'.format(len(runs), started_at, ended_at))
+        runs_completed = Run.query(Run.ended_at >= started_at, Run.ended_at <= ended_at, Run.is_completed == True).fetch()
+        log.info('Fetched {0} completed runs from {1} till {2}'.format(len(runs_completed), started_at, ended_at))
+        runs_inprogress = Run.query(Run.ended_at >= started_at, Run.is_finished == False).fetch()
+        log.info('Fetched {0} runs in progress from {1} till {2}'.format(len(runs_inprogress), started_at, ended_at))
 
         # exit if nothing
-        if not runs:
+        if not runs_completed and not runs_inprogress:
             log.warn('Exiting as there is no runs!')
             return
 
         net_profit = 0.
         stakes = 0.
-        runs_size = len(runs) + 0.
+        runs_size = 0.
 
         html = ''
         fields = [
@@ -190,40 +192,44 @@ class Main():
             'probability', 'profit_req', 'payout', 'stake',
             'is_win', 'profit', 'profit_net',
         ]
-        for run in runs:
-            # table header
-            table = '<p>{0}: {1} {2}'.format(run.binary_ref, run.trade_base, run.trade_aim)
-            table += '<table width=100%" border="1"><thead><tr>'
-            for field in fields:
-                table += '<th>{0}</th>'.format(field)
-            table += '</tr></thead>'
-            # table body
-            table += '<tbody>'
-            # update results
-            net_profit += run.profit_net
-            stakes += run.stake
+        for runs in [runs_completed, runs_inprogress]:
+            html += '<h4>{0}</h4>'.format('FINISHED' if not html else 'IN PROGRESS')
+            for run in runs:
+                # update results
+                if run.is_completed:
+                    net_profit += run.profit_net
+                    stakes += run.stake_net
+                    runs_size += 1.
 
-            row = '<tr>'
-            for field in fields:
-                row += '<td>{0}</td>'.format(getattr(run, field))
-            row += '</tr>'
-            log.info('Row: {0}'.format(row))
-            table += row
-
-            while run.step > 1:
-                run = run.parent_run.get()
-                stakes += run.stake
+                # table header
+                table = '<p>{0}: {3} {1} {2}'.format(run.binary_ref, run.trade_base, run.trade_aim, run.currency)
+                table += '<table width=100%" border="1"><thead><tr>'
+                for field in fields:
+                    table += '<th>{0}</th>'.format(field)
+                table += '</tr></thead>'
+                # table body
+                table += '<tbody>'
 
                 row = '<tr>'
-                for field in fields[:-1]:
+                for field in fields:
                     row += '<td>{0}</td>'.format(getattr(run, field))
-                row += '<td>&nbsp;</td></tr>'
+                row += '</tr>'
                 log.info('Row: {0}'.format(row))
                 table += row
 
-            table += '</tbody></table>'
-            # pprint(table)
-            html += table
+                while run.step > 1:
+                    run = run.parent_run.get()
+
+                    row = '<tr>'
+                    for field in fields[:-1]:
+                        row += '<td>{0}</td>'.format(getattr(run, field))
+                    row += '<td>&nbsp;</td></tr>'
+                    log.info('Row: {0}'.format(row))
+                    table += row
+
+                table += '</tbody></table>'
+                # pprint(table)
+                html += table
 
         subject = '[{0:.2f}] {1} runs totalling {2:.2f} profit with {3:.2f} stakes'.format(
             net_profit / stakes,

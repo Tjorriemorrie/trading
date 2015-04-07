@@ -36,6 +36,7 @@ class Run(ndb.Model):
 
     payout = ndb.FloatProperty(required=True, default=2.)
     probability = ndb.FloatProperty(required=True)
+    balance = ndb.FloatProperty(default=0.)
 
     stake = ndb.FloatProperty(required=True)
     stake_parent = ndb.FloatProperty(default=0.)
