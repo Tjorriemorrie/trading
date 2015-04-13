@@ -7,13 +7,15 @@ from models import Run, Q
 from rl import RL
 from binary import Binary
 from pprint import pprint
+import math
 
 
 class Main():
 
     def __init__(self, auto_login=True):
         log.info('Main init started')
-        self.interval = 10
+        self.interval = 15
+        self.active_limit = math.floor(50. / 3.)
         self.binary = Binary(auto_login)
         self.rl = RL()
         self.loadQ()
@@ -56,22 +58,28 @@ class Main():
         # prevent too many running at the same time
         runs_unfinished = Run.query(Run.is_finished == False).count()
         log.info('{0} runs active'.format(runs_unfinished))
-        if runs_unfinished > 15:
-            log.warn('Too many runs active, not creating new')
+        if runs_unfinished > self.active_limit:
+            log.warn('Too many runs active (more than {0:.0f}): not creating new'.format(self.active_limit))
             return
 
-        currency, trade_base, trade_aim = self.rl.selectNew(self.q)
-        run = Run(
-            currency=currency,
-            trade_base=trade_base,
-            trade_aim=trade_aim,
-            ended_at=dt.datetime.utcnow() + dt.timedelta(minutes=self.interval),
-        )
+        trades = [
+            ('RDBULL', 'directional', 'higher'),
+            ('RDBEAR', 'directional', 'lower'),
+        ]
+        for trade in trades:
+            log.info('Creating trade {0}'.format(trade))
+            # currency, trade_base, trade_aim = self.rl.selectNew(self.q)
+            run = Run(
+                currency=trade[0],
+                trade_base=trade[1],
+                trade_aim=trade[2],
+                ended_at=dt.datetime.utcnow() + dt.timedelta(minutes=self.interval),
+            )
 
-        if self.binary.createNew(run, self.interval):
-            run.key = ndb.Key(Run, run.binary_ref)
-            run.put()
-            log.info('New run: {0}'.format(run))
+            if self.binary.createNew(run, self.interval):
+                run.key = ndb.Key(Run, run.binary_ref)
+                run.put()
+                log.info('New run: {0}'.format(run))
 
         log.info('Main new ended')
 
@@ -84,7 +92,7 @@ class Main():
         log.info('{0} runs found'.format(len(runs)))
 
         if len(runs):
-            profit_table = self.binary.getProfitTable()
+            profit_table = self.binary.getStatement()
 
             # continue every run
             for run in runs:
@@ -92,7 +100,7 @@ class Main():
                 log.info('Run: finding profit for {0}'.format(run.binary_ref))
 
                 # skip (finding result) if ending more than x time in the future
-                if run.ended_at > dt.datetime.utcnow() + dt.timedelta(seconds=10):
+                if run.ended_at > dt.datetime.utcnow() + dt.timedelta(seconds=60):
                     log.info('Run: skipping till {0}'.format(run.ended_at))
                     continue
 
@@ -103,7 +111,7 @@ class Main():
                     log.info('Run: waiting for {0} seconds'.format(to_sleep))
                     time.sleep(to_sleep)
                     log.info('Run: refreshing profit table...')
-                    profit_table = self.binary.getProfitTable()
+                    profit_table = self.binary.getStatement()
 
                 # get result
                 if run.binary_ref in profit_table:
@@ -111,12 +119,12 @@ class Main():
                     log.info('Run {0}: finished with profit {1}'.format(run.binary_ref, result_profit))
                 else:
                     log.warn('{0} has no profit/loss in table'.format(run.binary_ref))
-                    if run.ended_at > dt.datetime.utcnow() + dt.timedelta(minutes=-(self.interval * 3)):
+                    if run.ended_at > dt.datetime.utcnow() + dt.timedelta(minutes=-(self.interval * 4)):
                         log.info('Skipping for next run')
                         continue
                     else:
-                        log.error('Run too old {0}'.format(run.ended_at))
                         result_profit = -run.stake
+                        log.error('Run too old as ended at {0} (assuming {1:.2f} loss)'.format(run.ended_at, result_profit))
 
                 # update result with profit and act accordingly
                 run.updateResult(result_profit)
@@ -140,13 +148,13 @@ class Main():
         # a child is born
         run_child = Run(
             currency=run_parent.currency,
-            trade_base=run_parent.trade_base,
-            trade_aim=run_parent.trade_aim,
+            trade_base='directional',
+            trade_aim='higher' if run_parent.currency == 'RDBULL' else 'lower',
 
             parent_run=run_parent.key,
             profit_parent=run_parent.profit_net,
             stake_parent=run_parent.stake_net,
-            profit_req_parent=run_parent.profit_req,
+            profit_req_parent=round(run_parent.profit_req, 2),
 
             step=run_parent.step + 1,
             ended_at=dt.datetime.utcnow() + dt.timedelta(minutes=self.interval),
@@ -217,7 +225,9 @@ class Main():
                 log.info('Row: {0}'.format(row))
                 table += row
 
-                while run.step > 1:
+                i = 1
+                while run.step > 1 and i < 12:
+                    i += 1
                     run = run.parent_run.get()
 
                     row = '<tr>'
@@ -232,7 +242,7 @@ class Main():
                 html += table
 
         subject = '[{0:.2f}] {1} runs totalling {2:.2f} profit with {3:.2f} stakes'.format(
-            net_profit / stakes,
+            net_profit / max(1., stakes),
             runs_size,
             net_profit,
             stakes,

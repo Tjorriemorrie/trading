@@ -8,7 +8,7 @@ class RL():
     def __init__(self):
         self.alpha = 0.01
         log.info('RL alpha = {0:.0f}'.format(self.alpha * 100))
-        self.k = 1.
+        self.k = 10.
         log.info('RL k = {0:.0f}'.format(self.k))
 
 

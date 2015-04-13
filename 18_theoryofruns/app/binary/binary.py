@@ -64,9 +64,10 @@ class Binary():
             payout = divs[2].find('span').text
             # log.info('payout div {0}'.format(divs[2]))
             # log.info('Ref {0} payout {1}'.format(ref, payout))
-            statement[ref] = payout
+            statement[ref] = float(payout)
 
         log.info('Binary: statement retrieved {0}'.format(len(statement)))
+        log.debug(statement)
         return statement
 
 
@@ -90,6 +91,7 @@ class Binary():
             # log.info('Ref {0} profit/loss {1}'.format(ref, profit_loss))
             profit_table[ref] = profit_loss
 
+        log.debug(profit_table)
         log.info('Binary: profit table retrieved {0}'.format(len(profit_table)))
         return profit_table
 
@@ -124,6 +126,8 @@ class Binary():
                 log.warn('Create purchase try {0} failed'.format(_))
                 # check market closed
                 if 'This market is presently closed' in res['error']:
+                    return False
+                elif 'insufficient to buy this contract' in res['error']:
                     return False
                 else:
                     continue
@@ -171,11 +175,11 @@ class Binary():
 
         data_encoded = urllib.urlencode(payload)
         res = self.opener.open(self.url_prices, data_encoded)
-        # log.info(res.read())
+        # log.debug(res.read())
 
         html = BeautifulSoup(res.read())
         html_forms = html.find_all('form', class_='orderform')
-        # log.info('html forms {0}'.format(html_forms))
+        # log.debug('html forms {0}'.format(html_forms))
         data = []
         for form in html_forms:
             item = {

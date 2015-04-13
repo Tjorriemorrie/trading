@@ -5,4 +5,5 @@ urlpatterns = patterns('',
     url(r'^cron/run$', 'binary.views.run'),
     url(r'^cron/notify', 'binary.views.notify'),
     url(r'^cron/delete', 'binary.views.delete'),
+    url(r'^cron/close', 'binary.views.close'),
 )

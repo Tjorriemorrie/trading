@@ -62,6 +62,11 @@ transformers:
       external_name: currency
       # Type: String Stats: 855 properties of this type in this kind.
 
+    - property: balance
+      external_name: balance
+      # Type: Float Stats: 855 properties of this type in this kind.
+      import_transform: transform.none_if_empty(float)
+
     - property: ended_at
       external_name: ended_at
       # Type: Date/Time Stats: 855 properties of this type in this kind.

@@ -71,11 +71,31 @@ class Run(ndb.Model):
             iterations_req = max(1., round(math.log(profit_req / profit_target), 0))
             log.info('Profit req: {0:.0f} iterations req for profit req of {1:.2f}'.format(iterations_req, profit_req))
             profit_req = max(profit_target, profit_req / iterations_req)
-        self.profit_req = profit_req
+        self.profit_req = round(profit_req, 2)
         log.info('Profit req: final {0:.2f}'.format(self.profit_req))
 
     def getRoi(self):
-        return self.profit_net / self.stake_net
+        '''
+        pre
+        I 13:45:04.115 S q:-0.184 + e0.003 = v-0.182 for sRDBULL_payout_higher
+        I 13:45:04.115 S q:-0.207 + e0.006 = v-0.201 for sRDBULL_payout_lower
+        I 13:45:04.115 S q:-0.205 + e0.004 = v-0.201 for sRDBULL_directional_higher
+        I 13:45:04.116 S q:-0.188 + e0.005 = v-0.183 for sRDBULL_directional_lower
+        I 13:45:04.116 S q:-0.219 + e0.011 = v-0.209 for sRDBEAR_payout_higher
+        I 13:45:04.116 S q:-0.235 + e0.009 = v-0.226 for sRDBEAR_payout_lower
+        I 13:45:04.116 S q:-0.215 + e0.005 = v-0.211 for sRDBEAR_directional_higher
+        I 13:45:04.116 S q:-0.105 + e0.003 = v-0.102 for sRDBEAR_directional_lower
+        post
+        I 09:00:00.878 S q:-0.219 + e0.019 = v-0.200 for sRDBULL_payout_higher
+        I 09:00:00.878 S q:-0.207 + e0.060 = v-0.147 for sRDBULL_payout_lower
+        I 09:00:00.878 S q:-0.205 + e0.036 = v-0.169 for sRDBULL_directional_higher
+        I 09:00:00.878 S q:-0.188 + e0.047 = v-0.141 for sRDBULL_directional_lower
+        I 09:00:00.878 S q:-0.219 + e0.106 = v-0.113 for sRDBEAR_payout_higher
+        I 09:00:00.878 S q:-0.235 + e0.085 = v-0.150 for sRDBEAR_payout_lower
+        I 09:00:00.878 S q:-0.038 + e0.033 = v-0.005 for sRDBEAR_directional_higher
+        I 09:00:00.879 S q:-0.230 + e0.017 = v-0.213 for sRDBEAR_directional_lower
+        '''
+        return self.profit / self.stake
 
     def getState(self):
         return '_'.join([self.currency, self.trade_base, self.trade_aim])
