@@ -58,7 +58,7 @@ class Main():
         # prevent too many running at the same time
         runs_unfinished = Run.query(Run.is_finished == False).count()
         log.info('{0} runs active'.format(runs_unfinished))
-        if runs_unfinished > self.active_limit:
+        if runs_unfinished >= 4:
             log.warn('Too many runs active (more than {0:.0f}): not creating new'.format(self.active_limit))
             return
 
@@ -92,7 +92,7 @@ class Main():
         log.info('{0} runs found'.format(len(runs)))
 
         if len(runs):
-            profit_table = self.binary.getStatement()
+            profit_table = self.binary.getProfitTable()
 
             # continue every run
             for run in runs:
@@ -111,7 +111,7 @@ class Main():
                     log.info('Run: waiting for {0} seconds'.format(to_sleep))
                     time.sleep(to_sleep)
                     log.info('Run: refreshing profit table...')
-                    profit_table = self.binary.getStatement()
+                    profit_table = self.binary.getProfitTable()
 
                 # get result
                 if run.binary_ref in profit_table:

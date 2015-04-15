@@ -61,10 +61,10 @@ class Binary():
             # log.info('{0} divs in row'.format(len(divs)))
             ref = divs[0].find_all('div')[-1].text
             # log.info('{0}'.format(ref))
-            payout = divs[2].find('span').text
+            payout = divs[2].find('span').text.replace(',', '').strip()
             # log.info('payout div {0}'.format(divs[2]))
             # log.info('Ref {0} payout {1}'.format(ref, payout))
-            statement[ref] = float(payout)
+            statement[ref] = round(float(payout), 2)
 
         log.info('Binary: statement retrieved {0}'.format(len(statement)))
         log.debug(statement)
@@ -215,9 +215,9 @@ class Binary():
 
         ref = res['trade_ref']
         html = BeautifulSoup(res['display'])
-        stake = float(html.find('span', id='contract-outcome-buyprice').text)
-        balance_str = html.find('div', class_='account_balance').text.strip()
-        balance = float(balance_str.replace(',', '').split(' ')[-1])
+        stake = float(html.find('span', id='contract-outcome-buyprice').text.replace(',', '').strip())
+        balance_str = html.find('div', class_='account_balance').text.replace(',', '').strip()
+        balance = float(balance_str.split(' ')[-1])
 
         log.info('Binary trade purchased {0} with stake {1:.2f} (balance at {2:.2f})'.format(ref, stake, balance))
         return {'success': True, 'ref': ref, 'stake': stake, 'balance': balance}

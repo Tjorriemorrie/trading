@@ -6,6 +6,7 @@ from stats import Stats
 from datetime import datetime
 from google.appengine.ext import ndb
 import time
+from google.appengine.api import mail
 
 
 def home(request):
@@ -16,16 +17,14 @@ def home(request):
 def run(request):
     log.info('Run started')
 
-    # check if weekday is 1..5
-    # today = datetime.utcnow()
-    # if today.isoweekday() not in range(1, 6):
-    #     log.info('Weekend: no trading')
-    # else:
-        # start trading
-    main = Main()
-    main.new()
-    main.existing()
-    main.saveQ()
+    try:
+        main = Main()
+        main.new()
+        main.existing()
+        main.saveQ()
+    except Exception as e:
+        log.error(e)
+        notifyError(e)
 
     log.info('Run ended')
     return http.HttpResponse()
@@ -65,3 +64,15 @@ def close(request):
         run.put()
         log.info('Run closed {0}'.format(run.binary_ref))
     return http.HttpResponse()
+
+
+def notifyError(e):
+    log.info('Error notifying...')
+    msg = mail.EmailMessage(
+        sender='jacoj82@gmail.com',
+        subject='Error',
+        to='jacoj82@gmail.com',
+        body='{0}'.format(e),
+    )
+    msg.send()
+    log.info('Error notified')
