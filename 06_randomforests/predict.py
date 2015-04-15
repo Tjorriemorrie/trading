@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import sklearn as sk
+from sklearn.externals import joblib
 from features import FeatureFactory
 
 currencies = [
@@ -23,7 +24,7 @@ for currency in currencies:
 
     # load data
     df = pd.read_csv(
-        r'../' + currency + '1440.csv',
+        r'../data/' + currency + '1440.csv',
         names=['date', 'time', 'open', 'high', 'low', 'close', 'volume'],
     )
     data = df.as_matrix()
@@ -33,7 +34,7 @@ for currency in currencies:
     closes = data[:, 5].astype(float)
     volumes = data[:, 6].astype(int)
 
-    rfc = sk.externals.joblib.load('models/' + currency + '.pkl')
+    rfc = joblib.load('models/' + currency + '.pkl')
 
     # calculating features
     # print '\n calculating features...'
@@ -46,7 +47,7 @@ for currency in currencies:
 
     # predict
     p_yesterday = rfc.predict(X_yesterday)[0]
-    p_today = rfc.predict(X_today)[0]
+    p_today = rfc.predict_proba(X_today)[0]
 
     if p_yesterday == p_today:
         print data[-1:][0][0] + ' - ' + str(p_today) + ' - ' + currency
