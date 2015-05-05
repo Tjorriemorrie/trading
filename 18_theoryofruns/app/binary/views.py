@@ -30,6 +30,7 @@ def run(request):
     else:
         # start trading
         main = Main()
+        main.saveQ()
         main.new()
         main.existing()
         main.saveQ()
