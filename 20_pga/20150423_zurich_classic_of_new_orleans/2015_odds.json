@@ -1,0 +1,596 @@
+{
+    "odds": [
+        {
+            "player_name": "Dustin Johnson",
+            "betting_odds": "8/1"
+        },
+        {
+            "player_name": "Jason Day",
+            "betting_odds": "10/1"
+        },
+        {
+            "player_name": "Justin Rose",
+            "betting_odds": "10/1"
+        },
+        {
+            "player_name": "Rickie Fowler",
+            "betting_odds": "16/1"
+        },
+        {
+            "player_name": "Keegan Bradley",
+            "betting_odds": "20/1"
+        },
+        {
+            "player_name": "Harris English",
+            "betting_odds": "22/1"
+        },
+        {
+            "player_name": "Billy Horschel",
+            "betting_odds": "28/1"
+        },
+        {
+            "player_name": "Brendan Steele",
+            "betting_odds": "40/1"
+        },
+        {
+            "player_name": "Justin Thomas",
+            "betting_odds": "40/1"
+        },
+        {
+            "player_name": "Sean O’Hair",
+            "betting_odds": "40/1"
+        },
+        {
+            "player_name": "Steve Stricker",
+            "betting_odds": "40/1"
+        },
+        {
+            "player_name": "Jamie Donaldson",
+            "betting_odds": "45/1"
+        },
+        {
+            "player_name": "Morgan Hoffman",
+            "betting_odds": "45/1"
+        },
+        {
+            "player_name": "Branden Grace",
+            "betting_odds": "50/1"
+        },
+        {
+            "player_name": "Brendon De Jonge",
+            "betting_odds": "50/1"
+        },
+        {
+            "player_name": "Cameron Tringale",
+            "betting_odds": "50/1"
+        },
+        {
+            "player_name": "John Peterson",
+            "betting_odds": "50/1"
+        },
+        {
+            "player_name": "Nick Watney",
+            "betting_odds": "50/1"
+        },
+        {
+            "player_name": "Russell Knox",
+            "betting_odds": "50/1"
+        },
+        {
+            "player_name": "Scott Piercy",
+            "betting_odds": "50/1"
+        },
+        {
+            "player_name": "Charles Howell III",
+            "betting_odds": "55/1"
+        },
+        {
+            "player_name": "Bernd Wiesberger",
+            "betting_odds": "66/1"
+        },
+        {
+            "player_name": "Daniel Berger",
+            "betting_odds": "66/1"
+        },
+        {
+            "player_name": "Sangmoon Bae",
+            "betting_odds": "66/1"
+        },
+        {
+            "player_name": "Seung-yul Noh",
+            "betting_odds": "66/1"
+        },
+        {
+            "player_name": "John Senden",
+            "betting_odds": "75/1"
+        },
+        {
+            "player_name": "Kevin Kisner",
+            "betting_odds": "75/1"
+        },
+        {
+            "player_name": "Martin Laird",
+            "betting_odds": "75/1"
+        },
+        {
+            "player_name": "Robert Streb",
+            "betting_odds": "75/1"
+        },
+        {
+            "player_name": "Marc Leishman",
+            "betting_odds": "80/1"
+        },
+        {
+            "player_name": "Marc Warren",
+            "betting_odds": "80/1"
+        },
+        {
+            "player_name": "Troy Merritt",
+            "betting_odds": "80/1"
+        },
+        {
+            "player_name": "Jason Bohn",
+            "betting_odds": "90/1"
+        },
+        {
+            "player_name": "Jeff Overton",
+            "betting_odds": "90/1"
+        },
+        {
+            "player_name": "Kevin Chappell",
+            "betting_odds": "90/1"
+        },
+        {
+            "player_name": "Alex Cejka",
+            "betting_odds": "100/1"
+        },
+        {
+            "player_name": "Bo Van Pelt",
+            "betting_odds": "100/1"
+        },
+        {
+            "player_name": "Boo Weekley",
+            "betting_odds": "100/1"
+        },
+        {
+            "player_name": "Camilo Villegas",
+            "betting_odds": "100/1"
+        },
+        {
+            "player_name": "Chesson Hadley",
+            "betting_odds": "100/1"
+        },
+        {
+            "player_name": "Jerry Kelly",
+            "betting_odds": "100/1"
+        },
+        {
+            "player_name": "John Huh",
+            "betting_odds": "100/1"
+        },
+        {
+            "player_name": "Jonas Blixt",
+            "betting_odds": "100/1"
+        },
+        {
+            "player_name": "Kyle Reifers",
+            "betting_odds": "100/1"
+        },
+        {
+            "player_name": "Lucas Glover",
+            "betting_odds": "100/1"
+        },
+        {
+            "player_name": "Retief Goosen",
+            "betting_odds": "100/1"
+        },
+        {
+            "player_name": "William Mcgirt",
+            "betting_odds": "100/1"
+        },
+        {
+            "player_name": "Aaron Baddeley",
+            "betting_odds": "125/1"
+        },
+        {
+            "player_name": "Carl Pettersson",
+            "betting_odds": "125/1"
+        },
+        {
+            "player_name": "Carlos Ortiz",
+            "betting_odds": "125/1"
+        },
+        {
+            "player_name": "Chris Stroud",
+            "betting_odds": "125/1"
+        },
+        {
+            "player_name": "Fredrik Jacobson",
+            "betting_odds": "125/1"
+        },
+        {
+            "player_name": "George Mcneill",
+            "betting_odds": "125/1"
+        },
+        {
+            "player_name": "Hudson Swafford",
+            "betting_odds": "125/1"
+        },
+        {
+            "player_name": "K.J. Choi",
+            "betting_odds": "125/1"
+        },
+        {
+            "player_name": "Luke Guthrie",
+            "betting_odds": "125/1"
+        },
+        {
+            "player_name": "Michael Putnam",
+            "betting_odds": "125/1"
+        },
+        {
+            "player_name": "Scott Brown",
+            "betting_odds": "125/1"
+        },
+        {
+            "player_name": "Tony Finau",
+            "betting_odds": "125/1"
+        },
+        {
+            "player_name": "Vijay Singh",
+            "betting_odds": "125/1"
+        },
+        {
+            "player_name": "Will Mackenzie",
+            "betting_odds": "125/1"
+        },
+        {
+            "player_name": "Zac Blair",
+            "betting_odds": "125/1"
+        },
+        {
+            "player_name": "Alex Prugh",
+            "betting_odds": "150/1"
+        },
+        {
+            "player_name": "Andrew Svoboda",
+            "betting_odds": "150/1"
+        },
+        {
+            "player_name": "Brian Stuard",
+            "betting_odds": "150/1"
+        },
+        {
+            "player_name": "Brice Garnett",
+            "betting_odds": "150/1"
+        },
+        {
+            "player_name": "Bryce Molder",
+            "betting_odds": "150/1"
+        },
+        {
+            "player_name": "Danny Lee",
+            "betting_odds": "150/1"
+        },
+        {
+            "player_name": "David Hearn",
+            "betting_odds": "150/1"
+        },
+        {
+            "player_name": "David Lingmerth",
+            "betting_odds": "150/1"
+        },
+        {
+            "player_name": "Erik Compton",
+            "betting_odds": "150/1"
+        },
+        {
+            "player_name": "John Merrick",
+            "betting_odds": "150/1"
+        },
+        {
+            "player_name": "Robert Garrigus",
+            "betting_odds": "150/1"
+        },
+        {
+            "player_name": "Chad Campbell",
+            "betting_odds": "175/1"
+        },
+        {
+            "player_name": "David Toms",
+            "betting_odds": "175/1"
+        },
+        {
+            "player_name": "Martin Flores",
+            "betting_odds": "175/1"
+        },
+        {
+            "player_name": "Michael Thompson",
+            "betting_odds": "175/1"
+        },
+        {
+            "player_name": "Adam Hadwin",
+            "betting_odds": "200/1"
+        },
+        {
+            "player_name": "Andrew Putnam",
+            "betting_odds": "200/1"
+        },
+        {
+            "player_name": "Ben Crane",
+            "betting_odds": "200/1"
+        },
+        {
+            "player_name": "Blayne Barber",
+            "betting_odds": "200/1"
+        },
+        {
+            "player_name": "Brian Davis",
+            "betting_odds": "200/1"
+        },
+        {
+            "player_name": "Chad Collins",
+            "betting_odds": "200/1"
+        },
+        {
+            "player_name": "Charlie Beljan",
+            "betting_odds": "200/1"
+        },
+        {
+            "player_name": "D.A. Points",
+            "betting_odds": "200/1"
+        },
+        {
+            "player_name": "D.H. Lee",
+            "betting_odds": "200/1"
+        },
+        {
+            "player_name": "Jhonattan Vegas",
+            "betting_odds": "200/1"
+        },
+        {
+            "player_name": "Jon Curran",
+            "betting_odds": "200/1"
+        },
+        {
+            "player_name": "Ken Duke",
+            "betting_odds": "200/1"
+        },
+        {
+            "player_name": "Nicholas Thompson",
+            "betting_odds": "200/1"
+        },
+        {
+            "player_name": "Ryo Ishikawa",
+            "betting_odds": "200/1"
+        },
+        {
+            "player_name": "Sam Saunders",
+            "betting_odds": "200/1"
+        },
+        {
+            "player_name": "Scott Pinckney",
+            "betting_odds": "200/1"
+        },
+        {
+            "player_name": "Scott Stallings",
+            "betting_odds": "200/1"
+        },
+        {
+            "player_name": "Tommy Gainey",
+            "betting_odds": "200/1"
+        },
+        {
+            "player_name": "Whee Kim",
+            "betting_odds": "200/1"
+        },
+        {
+            "player_name": "Andres Romero",
+            "betting_odds": "250/1"
+        },
+        {
+            "player_name": "Blake Adams",
+            "betting_odds": "250/1"
+        },
+        {
+            "player_name": "Greg Owen",
+            "betting_odds": "250/1"
+        },
+        {
+            "player_name": "J.J. Henry",
+            "betting_odds": "250/1"
+        },
+        {
+            "player_name": "Mark Wilson",
+            "betting_odds": "250/1"
+        },
+        {
+            "player_name": "Nick Taylor",
+            "betting_odds": "250/1"
+        },
+        {
+            "player_name": "Richard Sterne",
+            "betting_odds": "250/1"
+        },
+        {
+            "player_name": "Ricky Barnes",
+            "betting_odds": "250/1"
+        },
+        {
+            "player_name": "S.J. Park",
+            "betting_odds": "250/1"
+        },
+        {
+            "player_name": "Scott Langley",
+            "betting_odds": "250/1"
+        },
+        {
+            "player_name": "Spencer Levin",
+            "betting_odds": "250/1"
+        },
+        {
+            "player_name": "Andres Gonzales",
+            "betting_odds": "300/1"
+        },
+        {
+            "player_name": "Andrew Loupe",
+            "betting_odds": "300/1"
+        },
+        {
+            "player_name": "Colt Knost",
+            "betting_odds": "300/1"
+        },
+        {
+            "player_name": "Gonzalo Fernandez-Castano",
+            "betting_odds": "300/1"
+        },
+        {
+            "player_name": "Heath Slocum",
+            "betting_odds": "300/1"
+        },
+        {
+            "player_name": "Jim Herman",
+            "betting_odds": "300/1"
+        },
+        {
+            "player_name": "Max Homa",
+            "betting_odds": "300/1"
+        },
+        {
+            "player_name": "Robert Allenby",
+            "betting_odds": "300/1"
+        },
+        {
+            "player_name": "Steven Bowditch",
+            "betting_odds": "300/1"
+        },
+        {
+            "player_name": "Cameron Percy",
+            "betting_odds": "350/1"
+        },
+        {
+            "player_name": "Curtis Thompson",
+            "betting_odds": "350/1"
+        },
+        {
+            "player_name": "Derek Ernst",
+            "betting_odds": "350/1"
+        },
+        {
+            "player_name": "Derek Fathauer",
+            "betting_odds": "350/1"
+        },
+        {
+            "player_name": "Fabian Gomez",
+            "betting_odds": "350/1"
+        },
+        {
+            "player_name": "Tyrone Van-Aswegen",
+            "betting_odds": "350/1"
+        },
+        {
+            "player_name": "Bill Lunde",
+            "betting_odds": "400/1"
+        },
+        {
+            "player_name": "Byron Smith",
+            "betting_odds": "400/1"
+        },
+        {
+            "player_name": "Chez Reavie",
+            "betting_odds": "400/1"
+        },
+        {
+            "player_name": "Jason Gore",
+            "betting_odds": "400/1"
+        },
+        {
+            "player_name": "Jonathan Randolph",
+            "betting_odds": "400/1"
+        },
+        {
+            "player_name": "Justin Leonard",
+            "betting_odds": "400/1"
+        },
+        {
+            "player_name": "Mark Anderson",
+            "betting_odds": "400/1"
+        },
+        {
+            "player_name": "Mark Hubbard",
+            "betting_odds": "400/1"
+        },
+        {
+            "player_name": "Steve Wheatcroft",
+            "betting_odds": "400/1"
+        },
+        {
+            "player_name": "Zack Sucher",
+            "betting_odds": "400/1"
+        },
+        {
+            "player_name": "Carlos Sainz Jr",
+            "betting_odds": "500/1"
+        },
+        {
+            "player_name": "Eric Axley",
+            "betting_odds": "500/1"
+        },
+        {
+            "player_name": "Jarrod Lyle",
+            "betting_odds": "500/1"
+        },
+        {
+            "player_name": "Jim Renner",
+            "betting_odds": "500/1"
+        },
+        {
+            "player_name": "Oscar Fraustro",
+            "betting_odds": "500/1"
+        },
+        {
+            "player_name": "Roger Sloan",
+            "betting_odds": "500/1"
+        },
+        {
+            "player_name": "Steven Alker",
+            "betting_odds": "500/1"
+        },
+        {
+            "player_name": "Tim Wilkinson",
+            "betting_odds": "500/1"
+        },
+        {
+            "player_name": "Tom Hoge",
+            "betting_odds": "500/1"
+        },
+        {
+            "player_name": "Woody Austin",
+            "betting_odds": "500/1"
+        },
+        {
+            "player_name": "Chris Dimarco",
+            "betting_odds": "750/1"
+        },
+        {
+            "player_name": "Dudley Hart",
+            "betting_odds": "750/1"
+        },
+        {
+            "player_name": "Mike Weir",
+            "betting_odds": "750/1"
+        },
+        {
+            "player_name": "Jake Narro",
+            "betting_odds": "1000/1"
+        },
+        {
+            "player_name": "Joe Affrunti",
+            "betting_odds": "1000/1"
+        },
+        {
+            "player_name": "Neal Lancaster",
+            "betting_odds": "1000/1"
+        }
+    ]
+}
