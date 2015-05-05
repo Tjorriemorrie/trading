@@ -1,0 +1,20 @@
+{
+  "name": "trading",
+  "version": "0.0.0",
+  "homepage": "https://github.com/Tjorriemorrie/trading",
+  "authors": [
+    "Tjorriemorrie <jacoj82@gmail.com>"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "static/vendor",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "bootstrap": "~3.3.4"
+  }
+}
