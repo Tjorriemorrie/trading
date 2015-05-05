@@ -17,29 +17,27 @@ def main():
         # adding indicators
         addEwma(df, FIBOS)
         addRsi(df, FIBOS)
-        # print df
-        # break
 
         # set labels
         labels = getLabels(df)
         # print labels
 
-        print df
-        print labels
+        # print df.tail()
+        # print labels.tail()
 
         # split and scale
         X_train, X_test, y_train, y_test = splitAndScale(df, labels)
-        print X_train
-        print y_train
+        # print X_test
+        # print y_test
 
-        # fitting regressor
-        clf = GradientBoostingClassifier()
-        clf.fit(X_train, y_train)
-        log.info('Classifier fitted')
+        # loading regressor
+        clf = joblib.load('models/{0}.gbrt'.format(item['currency']))
+        log.info('Classifier loading')
 
-        # saving
-        joblib.dump(clf, 'models/{0}.gbrt'.format(item['currency']), compress=9)
-        log.info('Classifier saved')
+        # predict last day
+        prediction = clf.predict(X_test[-1])
+        predict_proba = clf.predict_proba(X_test[-1])
+        log.warn('{0} {1} {2} {3}'.format(df.ix[-1].name, item['currency'], prediction[0], max(predict_proba[0])))
 
 
 if __name__ == '__main__':
@@ -47,7 +45,7 @@ if __name__ == '__main__':
     # args = parser.parse_args()
 
     log.basicConfig(
-        level=log.DEBUG,
+        level=log.WARN,
         format='%(asctime)s %(name)-8s %(levelname)-8s %(message)s',
         # datefmt='%Y-%m-%d %H:%M:',
     )

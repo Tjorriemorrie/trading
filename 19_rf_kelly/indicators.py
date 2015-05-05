@@ -1,67 +1,46 @@
+import logging as log
 import pandas as pd
 import numpy as np
 import sklearn as sk
-import scipy as sp
 from pprint import pprint
 
 
+def ewma(df, col, span):
+    log.info('Adding {0} ewma to df on {1}'.format(span, col))
+    ewma = pd.stats.moments.ewma(df[col], span=span)
+    # print df
+    return ewma
+
+
+def rsi(df, n):
+    """
+    RSI = 100 - 100/(1 + RS*)
+    *Where RS = Average of x days' up closes / Average of x days' down closes.
+    """
+    delta = np.diff(df['close'])
+    dUp, dDown = delta.copy(), delta.copy()
+    dUp[dUp < 0] = 0
+    dDown[dDown > 0] = 0
+
+    RolUp = pd.rolling_mean(dUp, n)
+    RolDown = np.absolute(pd.rolling_mean(dDown, n))
+
+    RS = RolUp / RolDown
+    RS[0:n-1] = 0
+    RS = np.insert(RS, 0, 0)
+
+    # print '\nRS'
+    # print len(RS)
+    # print RS[:20]
+
+    rsiCalc = lambda x: 100 - 100 / (1 + x)
+    rsi = [rsiCalc(rs) for rs in RS]
+    # print rsi[:20]
+
+    return pd.Series(rsi, index=df.index)
+
+
 class FeatureFactory():
-    def ema(self, s, n):
-        """ returns an n period exponential moving average for the time series s
-        s is a list ordered from oldest (index 0) to most recent (index -1)
-        n is an integer
-        returns a numeric array of the exponential moving average """
-        s = np.array(s).astype(float)
-        ema = []
-        j = 1
-
-        # get n sma first and calculate the next n period ema
-        sma = sum(s[:n]) / n
-        multiplier = 2 / float(1 + n)
-        ema[:0] = [sma] * n
-
-        # EMA(current) = ( (Price(current) - EMA(prev) ) x Multiplier) + EMA(prev)
-        ema.append(( (s[n] - sma) * multiplier) + sma)
-
-        # now calculate the rest of the values
-        for i in s[n + 1:]:
-            tmp = ( (i - ema[j]) * multiplier) + ema[j]
-            ema.append(tmp)
-            j = j + 1
-
-        # print "ema length = " + str(len(ema))
-        return ema
-
-
-    def rsi(self, closes, n):
-        """
-        RSI = 100 - 100/(1 + RS*)
-        *Where RS = Average of x days' up closes / Average of x days' down closes.
-        """
-        # print '\ncloses'
-        # print len(closes)
-        delta = np.diff(closes)
-        dUp, dDown = delta.copy(), delta.copy()
-        dUp[dUp < 0] = 0
-        dDown[dDown > 0] = 0
-
-        RolUp = pd.rolling_mean(dUp, n)
-        RolDown = np.absolute(pd.rolling_mean(dDown, n))
-
-        RS = RolUp / RolDown
-        RS[0:n-1] = 0
-        RS = np.insert(RS, 0, 0)
-
-        # print '\nRS'
-        # print len(RS)
-        # print RS[0:20]
-
-        rsiCalc = lambda x: 100 - 100 / (1 + x)
-        rsi = [rsiCalc(rs) for rs in RS]
-        # print '\nrsi'
-        # print len(rsi)
-        # print np.array(rsi).astype(int)
-        return rsi
 
 
     def averageTrueRange(self, highs, lows, closes, n):
@@ -317,46 +296,3 @@ class FeatureFactory():
         return data
 
 
-    def getRewards(self, closes):
-        results = []
-        iMax = 2
-        for pos, close in enumerate(closes):
-            tmp = [0]
-            for i in xrange(1, iMax):
-                index = pos + i
-                if index >= len(closes) - 2:
-                    break
-                tmp.append(closes[index] - close)
-            # label = 'long' if sum(tmp) >= 0 else 'short'
-            results.append(sum(tmp))
-        # pprint(results)
-
-        # mean = np.mean([abs(r) for r in results])
-        # mean /= 2
-        # print 'mean', round(mean, 4)
-        # rewards = ['long' if abs(r) > mean and r > 0 else 'short' if abs(r) > mean and r < 0 else 'none' for r in results]
-
-        rewards = ['long' if r > 0 else 'short' for r in results]
-        # pprint(rewards)
-
-        return rewards
-
-
-    def getSplit(self, data, rewards, shuffle=0):
-        X_train, X_test, y_train, y_test = sk.cross_validation.train_test_split(
-            data,
-            rewards,
-            test_size=0.30,
-            random_state=shuffle,
-        )
-
-        # print '\nScaling features...'
-        X_train = sk.preprocessing.scale(X_train)
-        X_test = sk.preprocessing.scale(X_test)
-
-        # print 'X-train: ' + str(X_train.shape)
-        # print 'y-train: ' + str(y_train.shape)
-        # print 'X-test: ' + str(X_test.shape)
-        # print 'y-test: ' + str(y_test.shape)
-
-        return [X_train, X_test, y_train, y_test]
