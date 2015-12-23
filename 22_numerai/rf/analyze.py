@@ -1,32 +1,20 @@
 import argparse
 import logging
 import time
-from sarsa import Sarsa
+from numerai import Numerai
 
 logging.getLogger(__name__)
 
 MODEL_FILENAME = 'model_plain.dat'
-MAX_ITERATIONS = 10
 
-def main(minutes):
-    logging.info('training started for {} minutes'.format(minutes))
-    logging.info('max iterations: {}'.format(MAX_ITERATIONS))
+def main():
+    logging.info('analyzing...')
 
-    # q = loadQ(currency, interval)
+    with Numerai() as numerai:
+        logging.info('execution')
 
-    rewards = []
-    errors = []
-    ticks = []
-
-    start_time = time.time()
-    while (time.time() - start_time) < (minutes * 60):
-
-        with Sarsa(MODEL_FILENAME) as sarsa:
-            logging.info('sarsa execution')
 
         # q, r, error, tick = train(df_inner, q, alpha, epsilon, PERIODS, ACTIONS, pip_mul, info['std'])
-
-        break
 
     #
     #             # results
@@ -146,12 +134,10 @@ def updateQ(q, s, a, d, r, alpha):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('minutes')
     parser.add_argument('-v', '--verbose', action='store_true')
     parser.add_argument('-vv', '--very_verbose', action='store_true')
     args = parser.parse_args()
 
-    minutes = args.minutes
     verbose = args.verbose
     very_verbose = args.very_verbose
     lvl = logging.DEBUG if very_verbose else (logging.INFO if verbose else logging.WARN)
@@ -162,4 +148,4 @@ if __name__ == '__main__':
         # datefmt='%Y-%m-%d %H:%M:',
     )
 
-    main(minutes)
+    main()
