@@ -1,7 +1,11 @@
 {
     "_meta": {
         "hash": {
+<<<<<<< Updated upstream
             "sha256": "4598f9d7baa530dc3058b41d350b730829ae8f4efc342a93b76c16577c40e727"
+=======
+            "sha256": "df677ac87011e0518622f88fae8fc21cb715c08d5826e57c2a7ec2b386be31e2"
+>>>>>>> Stashed changes
         },
         "pipfile-spec": 6,
         "requires": {
@@ -16,6 +20,7 @@
         ]
     },
     "default": {
+<<<<<<< Updated upstream
         "certifi": {
             "hashes": [
                 "sha256:47f9c83ef4c0c621eaef743f133f09fa8a74a9b75f037e8624f83bd1b6626cb7",
@@ -158,12 +163,27 @@
                 "sha256:88f9287c0174266bb0d8cedd395cfba9c58e87e5ad86b2ce58859bc11be3cf02"
             ],
             "version": "==2.7.5"
+=======
+        "flatlib": {
+            "hashes": [
+                "sha256:dbd3c101a70ff7702f8200f48a9f9d02e6ad5f0800964efa32f36c3b07b5ad6a"
+            ],
+            "index": "pypi",
+            "version": "==0.2.1"
+        },
+        "pyswisseph": {
+            "hashes": [
+                "sha256:7b47f54a61ac17863a4d9e75269e53e09ad525780ac731eed6923415caa725cc"
+            ],
+            "version": "==2.0.0.post2"
+>>>>>>> Stashed changes
         },
         "pytz": {
             "hashes": [
                 "sha256:32b0891edff07e28efe91284ed9c31e123d84bea3fd98e1f72be2508f43ef8d9",
                 "sha256:d5f05e487007e29e03409f9398d074e158d920d36eb82eaf66fb1136b0c5374c"
             ],
+<<<<<<< Updated upstream
             "version": "==2018.9"
         },
         "quandl": {
@@ -200,6 +220,10 @@
                 "sha256:4aea003270831cceb8a90ff27c4031da6ead7ec1886023b80ce0dfe0adf61533"
             ],
             "version": "==1.11.1"
+=======
+            "index": "pypi",
+            "version": "==2018.9"
+>>>>>>> Stashed changes
         }
     },
     "develop": {}
