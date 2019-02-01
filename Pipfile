@@ -8,6 +8,7 @@ numpy = "*"
 pandas = "*"
 pandas-datareader = "*"
 quandl = "*"
+pyswisseph = {path = "./pyswisseph-2.5.1.post0-cp36-cp36m-win_amd64.whl"}
 
 [dev-packages]
 
