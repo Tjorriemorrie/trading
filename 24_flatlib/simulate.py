@@ -22,11 +22,35 @@ def main() -> NoReturn:
     astro.set_index('date', inplace=True)
     print('data frames loaded')
 
+    comb = pd.merge(ndq['is_higher'], astro, how='left', left_index=True, right_index=True)
+    comb.dropna(inplace=True)
+    print('data frames merged')
+
+    Y = comb['is_higher']
+    X = comb.drop(['is_higher'], axis=1)
+    print('X and Y extracted')
+
     X_train, X_test, y_train, y_test = train_test_split(
-        astro, ndq['los'], test_size=0.33, random_state=42)
+        X, Y, test_size=0.33, random_state=42)
 
     # random forest
     clf = RandomForestClassifier()
+    clf.fit(X_train, y_train)
+    yframe = y_test.to_frame()
+    yframe['pred'] = clf.predict(X_test)
+
+    backwards = pd.merge(ndq, yframe['pred'], how='left', left_index=True, right_index=True)
+    backwards.dropna(inplace=True)
+    print('dropped non predictions')
+
+    backwards['movement'] = backwards['Index Value 5'] - backwards['Index Value']
+    # backwards['mov_high'] = 1 if backwards['is_higher'] else -1
+    backwards['gain'] = backwards['movement']
+    backwards.loc[backwards['is_higher'] == backwards['pred'], 'gain'] = backwards['movement'] * -1
+    # backwards['gain'] = backwards['movement'] * backwards['mov_high']
+    print('gain calculated')
+
+    print(f'gained sum {backwards["gain"].sum()} and {backwards["gain"].mean()} per day')
 
     print('ended simulation')
 

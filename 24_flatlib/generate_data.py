@@ -20,17 +20,22 @@ def download_data():
 def transform_data():
     ndq = pd.read_csv(DATA_FILE)
     print('data loaded')
+
     ndq['Trade Date'] = pd.to_datetime(ndq['Trade Date']).dt.date
     ndq.set_index('Trade Date', inplace=True)
-    ndq['max5'] = ndq['Index Value'].rolling(5).max().shift(-5)
-    ndq['min5'] = ndq['Index Value'].rolling(5).min().shift(-5)
-    # ndq['relhigh'] = ndq['max5'] - ndq['Index Value']
-    ndq = ndq.dropna()
-    ndq['max5diff'] = ndq['max5'] - ndq['Index Value']
-    ndq['min5diff'] = ndq['Index Value'] - ndq['min5']
-    ndq['los'] = ndq['max5diff'] > ndq['min5diff']
+    print('date set as index')
+
+    ndq['Index Value 5'] = ndq['Index Value'].shift(-5)
+    ndq.dropna(inplace=True)
+    print('Five days ahead price shifted')
+
+    ndq['is_higher'] = ndq['Index Value 5'] > ndq['Index Value']
+    print('is higher value created')
+
     ndq.to_csv(DATA_TRF)
-    print('data transformed')
+    print('data saved')
+
+    print('done')
 
 
 if __name__ == '__main__':
