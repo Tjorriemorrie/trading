@@ -6,3 +6,6 @@
 *.pkl
 *.pklz
 *.thts
+.python-version
+**/__pycache__/
+*.sqlite3
